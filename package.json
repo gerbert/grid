@@ -1,0 +1,45 @@
+{
+    "author": "gerbert",
+    "dependencies": {
+        "@rebble/clay": "1.0.8"
+    },
+    "keywords": [
+        "grid",
+        "watchface",
+        "compact",
+        "emery",
+        "health",
+        "tron",
+        "flint",
+        "duo",
+        "time",
+        "simple",
+        "compact"
+    ],
+    "name": "grid",
+    "pebble": {
+        "capabilities": [
+            "configurable",
+            "health"
+        ],
+        "displayName": "//GRID",
+        "enableMultiJS": true,
+        "messageKeys": [
+            "GLANCE_DURATION_SEC"
+        ],
+        "projectType": "native",
+        "resources": {
+            "media": []
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "emery",
+            "flint"
+        ],
+        "uuid": "161423e4-0785-433d-b24a-bc2d4fd121f2",
+        "watchapp": {
+            "watchface": true
+        }
+    },
+    "version": "2.5.0"
+}

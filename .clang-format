@@ -1,0 +1,20 @@
+AccessModifierOffset: -4
+AlignConsecutiveAssignments: true
+AlignConsecutiveBitFields: true
+AlignConsecutiveDeclarations: true
+AlignConsecutiveMacros: Consecutive
+AlignConsecutiveTableGenDefinitionColons: AcrossEmptyLines
+AlignEscapedNewlines: LeftWithLastLine
+AllowShortIfStatementsOnASingleLine: false
+AlignTrailingComments:
+  Kind: Always
+  AlignPPAndNotPP: true
+  OverEmptyLines: 2
+BasedOnStyle: LLVM
+BreakBeforeBraces: Linux
+ColumnLimit: 120
+IndentWidth: 4
+NamespaceIndentation: All
+PointerAlignment: Right
+TabWidth: 4
+UseTab: Never

@@ -1,0 +1,8 @@
+Index:
+  Background: Build
+CompileFlags:
+  CompilationDatabase: .
+Completion:
+  AllScopes: true
+InlayHints:
+  Enabled: true

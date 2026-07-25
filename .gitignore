@@ -1,0 +1,6 @@
+.idea
+.lock-waf_darwin_build
+build
+compile_commands.json
+node_modules
+package-lock.json
