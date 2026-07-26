@@ -134,4 +134,8 @@ instructions, see the official Pebble SDK documentation:
 
 [Installing the Pebble SDK](https://developer.repebble.com/sdk/)
 
+For a practical C watchface example, see:
+
+[C Watchface Tutorial](https://github.com/coredevices/c-watchface-tutorial)
+
 The project targets `emery` (Pebble Time 2) and `flint` (Pebble 2 Duo).
