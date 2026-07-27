@@ -240,14 +240,15 @@ void health_deinit(Health *self)
     if (!self)
         return;
 
-    if (self->service_subscribed) {
+    bool   service_subscribed = self->service_subscribed;
+    Layer *layer              = self->layer;
+
+    self->service_subscribed = false;
+    self->layer              = NULL;
+    self->geometry           = NULL;
+
+    if (service_subscribed)
         health_service_events_unsubscribe();
-        self->service_subscribed = false;
-    }
-
-    if (self->layer)
-        layer_destroy(self->layer);
-
-    self->layer    = NULL;
-    self->geometry = NULL;
+    if (layer)
+        layer_destroy(layer);
 }

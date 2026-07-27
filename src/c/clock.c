@@ -67,15 +67,14 @@ static void draw_date(const Clock *self, GContext *ctx)
     GFont font = fonts_get_system_font(TIME_DATE_FONT);
 
     graphics_context_set_text_color(ctx, TIME_DATE_COLOR);
-    graphics_draw_text(ctx, self->date_buf, font, self->geometry->date,
-                       GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    graphics_draw_text(ctx, self->date_buf, font, self->geometry->date, GTextOverflowModeWordWrap, GTextAlignmentCenter,
+                       NULL);
 }
 
 static void draw_battery_bar(const Clock *self, GContext *ctx)
 {
     GRect  area   = self->geometry->battery_bar;
-    int    seg_w  = (area.size.w - (BATTERY_SEGMENTS - 1) * BATTERY_SEGMENT_GAP) /
-                   BATTERY_SEGMENTS;
+    int    seg_w  = (area.size.w - (BATTERY_SEGMENTS - 1) * BATTERY_SEGMENT_GAP) / BATTERY_SEGMENTS;
     int    filled = battery_filled_segments(self->battery_pct);
     GColor color  = battery_color_for_pct(self->battery_pct);
 
@@ -103,8 +102,8 @@ static void draw_battery_label(const Clock *self, GContext *ctx)
     snprintf(buf, sizeof(buf), "%3d%%", self->battery_pct);
 
     graphics_context_set_text_color(ctx, color);
-    graphics_draw_text(ctx, buf, font, self->geometry->battery_label,
-                       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    graphics_draw_text(ctx, buf, font, self->geometry->battery_label, GTextOverflowModeTrailingEllipsis,
+                       GTextAlignmentCenter, NULL);
 }
 
 static void update_time_display(Clock *self, const struct tm *time_info)
@@ -164,8 +163,11 @@ static void tick_handler(struct tm *tick_time, __attribute__((__unused__)) TimeU
 {
     App *app = app_from_active_window();
 
-    if (app)
-        update_time_display(&app->clock, tick_time);
+    if (!app)
+        return;
+
+    update_time_display(&app->clock, tick_time);
+    weather_tick(&app->weather, &app->settings.value, time(NULL));
 }
 
 bool clock_init(Clock *self, Layer *root, Layer *details, const ScreenGeometry *geometry)
@@ -215,17 +217,19 @@ void clock_deinit(Clock *self)
     if (!self)
         return;
 
-    if (self->tick_subscribed) {
+    bool       tick_subscribed = self->tick_subscribed;
+    Layer     *details_layer   = self->details_layer;
+    TextLayer *time_layer      = self->time_layer;
+
+    self->tick_subscribed = false;
+    self->details_layer   = NULL;
+    self->time_layer      = NULL;
+    self->geometry        = NULL;
+
+    if (tick_subscribed)
         tick_timer_service_unsubscribe();
-        self->tick_subscribed = false;
-    }
-
-    if (self->details_layer)
-        layer_destroy(self->details_layer);
-    if (self->time_layer)
-        text_layer_destroy(self->time_layer);
-
-    self->details_layer = NULL;
-    self->time_layer    = NULL;
-    self->geometry      = NULL;
+    if (details_layer)
+        layer_destroy(details_layer);
+    if (time_layer)
+        text_layer_destroy(time_layer);
 }

@@ -20,12 +20,20 @@
     "pebble": {
         "capabilities": [
             "configurable",
-            "health"
+            "health",
+            "location"
         ],
         "displayName": "//GRID",
         "enableMultiJS": true,
         "messageKeys": [
-            "GLANCE_DURATION_SEC"
+            "GLANCE_DURATION_SEC",
+            "WEATHER_ENABLE",
+            "WEATHER_PROVIDER_ID",
+            "WEATHER_UPDATE_INTERVAL_HOURS",
+            "WEATHER_RETRY_INTERVAL_MINUTES",
+            "WEATHER_REQUEST",
+            "WEATHER_FORECAST",
+            "WEATHER_UPDATE_FAILED"
         ],
         "projectType": "native",
         "resources": {
@@ -41,5 +49,5 @@
             "watchface": true
         }
     },
-    "version": "2.5.0"
+    "version": "2.6.0"
 }

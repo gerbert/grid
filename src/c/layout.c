@@ -9,12 +9,22 @@
 #define GRID_COLOR       GColorTiffanyBlue
 #define ACCENT_COLOR     GColorCyan
 #define REF_TIME_Y       20
+#define REF_WEATHER_Y    86
+#define REF_DATE_Y       106
+#define WEATHER_HEIGHT   22
+#define DATE_HEIGHT      30
+#define HEALTH_HEIGHT    37
 #define SHOW_BOTTOM_GRID 1
 #else
 #define WINDOW_BG_COLOR  GColorBlack
 #define GRID_COLOR       GColorWhite
 #define ACCENT_COLOR     GColorWhite
-#define REF_TIME_Y       29
+#define REF_TIME_Y       24
+#define REF_WEATHER_Y    87
+#define REF_DATE_Y       108
+#define WEATHER_HEIGHT   16
+#define DATE_HEIGHT      21
+#define HEALTH_HEIGHT    35
 #define SHOW_BOTTOM_GRID 0
 #endif
 
@@ -24,14 +34,11 @@
 #define BATTERY_HEIGHT         4
 #define BATTERY_LABEL_WIDTH    32
 #define BATTERY_RESERVED_WIDTH 35
-#define HEALTH_HEIGHT          37
 #define SLEEP_HEIGHT           22
 #define SLEEP_GAP              2
-#define DATE_HEIGHT            30
 
 #define REF_HEIGHT          228
 #define REF_TIME_HEIGHT     62
-#define REF_DATE_Y          106
 #define REF_HEALTH_Y        140
 #define REF_BOTTOM_GRID_OFF 52
 
@@ -43,6 +50,7 @@ static void screen_compute_geometry(GRect bounds, ScreenGeometry *geometry)
     int height       = bounds.size.h;
     int time_y       = screen_scale(REF_TIME_Y, height);
     int time_height  = screen_scale(REF_TIME_HEIGHT, height);
+    int weather_y    = screen_scale(REF_WEATHER_Y, height);
     int date_y       = screen_scale(REF_DATE_Y, height);
     int health_y_raw = screen_scale(REF_HEALTH_Y, height);
     int battery_y    = height - SCREEN_MARGIN - BATTERY_HEIGHT;
@@ -66,8 +74,9 @@ static void screen_compute_geometry(GRect bounds, ScreenGeometry *geometry)
     health_y                = health_y_raw < health_y_max ? health_y_raw : health_y_max;
 #endif
 
-    geometry->time = GRect(0, time_y, width, time_height);
-    geometry->date = GRect(0, date_y, width, DATE_HEIGHT);
+    geometry->time    = GRect(0, time_y, width, time_height);
+    geometry->weather = GRect(0, weather_y, width, WEATHER_HEIGHT);
+    geometry->date    = GRect(0, date_y, width, DATE_HEIGHT);
     geometry->battery_bar =
         GRect(SCREEN_MARGIN, battery_y, width - 2 * SCREEN_MARGIN - BATTERY_RESERVED_WIDTH, BATTERY_HEIGHT);
     geometry->battery_label =
@@ -166,13 +175,16 @@ static void main_window_unload(Window *window)
 
     app_unmount(app);
 
-    if (self->decor_layer)
-        layer_destroy(self->decor_layer);
-    if (self->details_layer)
-        layer_destroy(self->details_layer);
+    Layer *decor_layer   = self->decor_layer;
+    Layer *details_layer = self->details_layer;
 
     self->decor_layer   = NULL;
     self->details_layer = NULL;
+
+    if (decor_layer)
+        layer_destroy(decor_layer);
+    if (details_layer)
+        layer_destroy(details_layer);
 }
 
 static const WindowHandlers WINDOW_HANDLERS = {
@@ -207,6 +219,8 @@ void screen_deinit(Screen *self)
     if (!self || !self->window)
         return;
 
-    window_destroy(self->window);
+    Window *window = self->window;
+
     self->window = NULL;
+    window_destroy(window);
 }

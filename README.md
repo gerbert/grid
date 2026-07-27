@@ -6,20 +6,24 @@ screen grid, and large LCD-style digits.
 
 The idea is simple. Most of the time, the watchface shows only the current
 time. Flick your wrist and the screen plays a short Doppler animation, then
-opens the full view with the date, battery status, health data, and sleep time.
+opens the full view with the weather, date, battery status, health data, and
+sleep time.
 
 ## Highlights
 
 - Clean idle screen with time only
 - Doppler animation triggered by a wrist flick
 - Configurable glance duration from 3 to 30 seconds
+- Optional 12-hour weather forecast with a selectable provider
+- Configurable weather update interval from 1 to 6 hours
+- Configurable failed-update retry interval from 15 to 60 minutes
 - 12-hour and 24-hour time formats
 - Date shown in bracket notation
 - Segmented battery bar with percentage
 - Steps, calories, distance, sleep, and heart rate where supported
 - Separate layouts for Pebble Time 2 and Pebble 2 Duo
 - Persistent settings stored on the watch
-- No background network requests or JavaScript timers
+- Weather values stored only in watch RAM
 
 ## Supported watches
 
@@ -29,6 +33,7 @@ Platform: `emery`
 
 The full view shows:
 
+- Weather forecast for the current hour when enabled
 - Steps (`STP`)
 - Heart rate (`BPM`)
 - Active calories (`CAL`)
@@ -46,6 +51,7 @@ Platform: `flint`
 
 The full view shows:
 
+- Weather forecast for the current hour when enabled
 - Steps (`STP`)
 - Active calories (`CAL`)
 - Distance in kilometers (`KM`)
@@ -62,7 +68,8 @@ the lower grid section.
 ### Idle screen
 
 During normal use, only the current time is visible. The watchface wakes once per
-minute to update it.
+minute to update it and to compare the weather update timestamp with the current
+time.
 
 ### Glance screen
 
@@ -74,6 +81,32 @@ ignored. This avoids restarting the animation, extending the glance timer, or
 repeatedly requesting the backlight.
 
 The backlight is enabled only when it is currently off.
+
+## Weather
+
+Weather is disabled by default. The provider is selected in the settings.
+Open-Meteo is currently available.
+
+When enabled, PebbleKit JS obtains the phone location and asks the selected
+provider for up to twelve forecast points. Provider-specific values, including
+weather codes, are converted on the phone into a normalized sequence containing
+a start time, slot interval, temperature, and ready-to-display condition text.
+The complete result is sent to the watch as one compact byte array.
+
+The watch does not interpret provider-specific weather codes. It stores one
+normalized forecast in RAM and selects the current slot using the received start
+time, interval, and element count.
+
+No weather values are written to persistent watch storage. Restarting the
+watchface clears the forecast until the next successful synchronization.
+
+After weather is enabled, the existing minute tick is the only watch-side
+scheduler. It starts an update when `next_update_at` is due. Failed or timed-out
+updates leave the previous forecast unchanged and schedule the next attempt
+using the configured retry interval.
+
+The wrist gesture never starts a weather request. The weather layer only reads
+the current normalized in-memory slot.
 
 ## Health data
 
@@ -107,25 +140,34 @@ Pebble 2 Duo uses the monochrome system palette.
 
 The configuration page is built with Rebble Clay.
 
-Available option:
+Available options:
 
 - `Glance duration`: 3 to 30 seconds, default 7 seconds
+- `Enable weather`: disabled by default
+- `Provider`: Open-Meteo by default
+- `Weather update interval`: 1 to 6 hours, default 3 hours
+- `Weather retry interval`: 15 to 60 minutes, default 30 minutes
 
-A saved value is used the next time the animation starts. It does not change a
-glance that is already running.
+The watch stores only the numeric provider index. Provider selection and API
+handling are implemented in PebbleKit JS.
 
 ## Power use
 
 The watchface tries to do as little work as possible while idle:
 
 - The time is updated once per minute.
+- The same minute tick performs one timestamp comparison for weather.
+- No additional weather timer is created.
+- Weather requests occur only when enabled and due.
+- Twelve forecast slots allow the displayed value to advance without another
+  phone request.
 - Date and battery values are refreshed only before a glance starts.
 - Health values are updated through HealthService events.
 - Hidden health layers are not redrawn after every health event.
 - Doppler timers exist only while the animation or glance is active.
 - Repeated flicks are ignored until the current glance finishes.
 - The backlight is requested only when it is off.
-- The JavaScript side has no polling, background timers, or network traffic.
+- PebbleKit JS has no polling or background interval timer.
 
 ## Building
 

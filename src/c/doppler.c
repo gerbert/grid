@@ -189,17 +189,19 @@ void doppler_deinit(Doppler *self)
     if (!self)
         return;
 
-    if (self->layer)
-        accel_tap_service_unsubscribe();
-
-    cancel_timer(&self->frame_timer);
-    cancel_timer(&self->visible_timer);
-
-    if (self->layer)
-        layer_destroy(self->layer);
+    Layer *layer = self->layer;
 
     self->layer                = NULL;
     self->target_layer         = NULL;
     self->frame                = 0;
     self->visible_duration_sec = GRID_GLANCE_DEFAULT_DURATION_SEC;
+
+    cancel_timer(&self->frame_timer);
+    cancel_timer(&self->visible_timer);
+
+    if (!layer)
+        return;
+
+    accel_tap_service_unsubscribe();
+    layer_destroy(layer);
 }

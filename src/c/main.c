@@ -24,6 +24,9 @@ bool app_mount(App *app)
     if (!clock_init(&app->clock, root, app->screen.details_layer, &app->screen.geometry))
         goto fail;
 
+    if (!weather_init(&app->weather, app->screen.details_layer, &app->screen.geometry))
+        goto fail;
+
     if (!health_init(&app->health, app->screen.details_layer, &app->screen.geometry))
         goto fail;
 
@@ -43,10 +46,13 @@ void app_unmount(App *app)
     if (!app)
         return;
 
+    // Block callbacks from treating partially destroyed modules as mounted.
+    app->mounted = false;
+
     doppler_deinit(&app->doppler);
     health_deinit(&app->health);
+    weather_deinit(&app->weather);
     clock_deinit(&app->clock);
-    app->mounted = false;
 }
 
 void app_activate_glance(App *app)
@@ -60,7 +66,7 @@ void app_activate_glance(App *app)
 
 static bool app_init(App *app)
 {
-    if (!settings_init(&app->settings))
+    if (!settings_init(&app->settings, app))
         return false;
 
     if (!screen_init(&app->screen, app)) {
@@ -74,7 +80,7 @@ static bool app_init(App *app)
 
 static void app_deinit(App *app)
 {
-    app_unmount(app);
+    // Destroying a loaded window invokes main_window_unload(), which owns app_unmount().
     screen_deinit(&app->screen);
     settings_deinit(&app->settings);
 }
