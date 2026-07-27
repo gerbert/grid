@@ -24,7 +24,7 @@ bool app_mount(App *app)
     if (!clock_init(&app->clock, root, app->screen.details_layer, &app->screen.geometry))
         goto fail;
 
-    if (!weather_init(&app->weather, app->screen.details_layer, &app->screen.geometry))
+    if (!weather_init(&app->weather, app->screen.details_layer, &app->screen.geometry, &app->settings.value))
         goto fail;
 
     if (!health_init(&app->health, app->screen.details_layer, &app->screen.geometry))

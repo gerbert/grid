@@ -3,7 +3,7 @@
 
 #include <pebble.h>
 
-#define GRID_SETTINGS_VERSION 3
+#define GRID_SETTINGS_VERSION 4
 
 #define GRID_GLANCE_DEFAULT_DURATION_SEC 7
 #define GRID_GLANCE_MIN_DURATION_SEC     3
@@ -18,19 +18,45 @@
 #define GRID_WEATHER_MIN_RETRY_INTERVAL_MINUTES     15
 #define GRID_WEATHER_MAX_RETRY_INTERVAL_MINUTES     60
 #define GRID_WEATHER_REQUEST_TIMEOUT_MINUTES        2
+#define GRID_WEATHER_DEFAULT_DISPLAY_MODE           WEATHER_DISPLAY_TEXT
 
 #define WEATHER_SLOT_COUNT           12
-#define WEATHER_CONDITION_LENGTH     16
 #define WEATHER_FORECAST_HEADER_SIZE 7
-#define WEATHER_FORECAST_SLOT_SIZE   (1 + WEATHER_CONDITION_LENGTH)
+#define WEATHER_FORECAST_SLOT_SIZE   2
 
 typedef struct App App;
+
+typedef enum {
+    WEATHER_DISPLAY_TEXT = 0,
+    WEATHER_DISPLAY_ICON = 1,
+} WeatherDisplayMode;
+
+typedef enum {
+    WEATHER_CONDITION_UNKNOWN          = 0,
+    WEATHER_CONDITION_CLEAR            = 1,
+    WEATHER_CONDITION_MOSTLY_CLEAR     = 2,
+    WEATHER_CONDITION_PARTLY_CLOUDY    = 3,
+    WEATHER_CONDITION_OVERCAST         = 4,
+    WEATHER_CONDITION_FOG              = 5,
+    WEATHER_CONDITION_DRIZZLE          = 6,
+    WEATHER_CONDITION_FREEZING_DRIZZLE = 7,
+    WEATHER_CONDITION_RAIN             = 8,
+    WEATHER_CONDITION_FREEZING_RAIN    = 9,
+    WEATHER_CONDITION_SNOW             = 10,
+    WEATHER_CONDITION_SNOW_GRAINS      = 11,
+    WEATHER_CONDITION_SHOWERS          = 12,
+    WEATHER_CONDITION_SNOW_SHOWERS     = 13,
+    WEATHER_CONDITION_THUNDERSTORM     = 14,
+    WEATHER_CONDITION_HAIL_STORM       = 15,
+    WEATHER_CONDITION_COUNT            = 16,
+} WeatherCondition;
 
 typedef struct {
     uint8_t enabled;
     uint8_t provider_id;
     uint8_t refresh_hrs;
     uint8_t retry_min;
+    uint8_t display_mode;
 } WeatherSettings;
 
 typedef struct {
@@ -85,13 +111,19 @@ typedef struct {
 } Health;
 
 typedef struct {
-    int8_t temperature_c;
-    char   condition[WEATHER_CONDITION_LENGTH];
+    int8_t  temperature_c;
+    uint8_t condition_id;
 } WeatherSlot;
 
 typedef struct {
     // Layer used to render the forecast slot matching the current time.
     Layer *layer;
+
+    // Current application settings used only to choose the presentation mode.
+    const Settings *settings;
+
+    // Custom icon font, loaded only when icon mode is drawn.
+    GFont icon_font;
 
     // Forecast slots stored in chronological order.
     WeatherSlot slots[WEATHER_SLOT_COUNT];
@@ -149,7 +181,8 @@ bool health_init(Health *health, Layer *details, const ScreenGeometry *geometry)
 void health_refresh(Health *health);
 void health_deinit(Health *health);
 
-bool weather_init(Weather *weather, Layer *details, const ScreenGeometry *geometry);
+bool weather_init(Weather *weather, Layer *details, const ScreenGeometry *geometry, const Settings *settings);
+void weather_refresh_display(Weather *weather);
 void weather_schedule_refresh(Weather *weather);
 void weather_tick(Weather *weather, const Settings *settings, time_t now);
 void weather_handle_message(Weather *weather, const Settings *settings, DictionaryIterator *iterator);

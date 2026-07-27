@@ -15,6 +15,7 @@ sleep time.
 - Doppler animation triggered by a wrist flick
 - Configurable glance duration from 3 to 30 seconds
 - Optional 12-hour weather forecast with a selectable provider
+- Text or icon display for the current weather condition
 - Configurable weather update interval from 1 to 6 hours
 - Configurable failed-update retry interval from 15 to 60 minutes
 - 12-hour and 24-hour time formats
@@ -90,12 +91,17 @@ Open-Meteo is currently available.
 When enabled, PebbleKit JS obtains the phone location and asks the selected
 provider for up to twelve forecast points. Provider-specific values, including
 weather codes, are converted on the phone into a normalized sequence containing
-a start time, slot interval, temperature, and ready-to-display condition text.
-The complete result is sent to the watch as one compact byte array.
+a start time, slot interval, temperature, and condition ID. The complete result
+is sent to the watch as one compact byte array.
 
 The watch does not interpret provider-specific weather codes. It stores one
 normalized forecast in RAM and selects the current slot using the received start
-time, interval, and element count.
+time, interval, and element count. A matching C enum is used only to select the
+display text or icon. Icon mode uses selected glyphs from Weather Icons 2.0.12.
+The original TTF is used without modification, while the Pebble resource
+configuration limits conversion to the 16 glyphs required by the watchface.
+The selected glyphs are rasterized at platform-specific sizes for Pebble Time 2
+and Pebble 2 Duo.
 
 No weather values are written to persistent watch storage. Restarting the
 watchface clears the forecast until the next successful synchronization.
@@ -145,6 +151,7 @@ Available options:
 - `Glance duration`: 3 to 30 seconds, default 7 seconds
 - `Enable weather`: disabled by default
 - `Provider`: Open-Meteo by default
+- `Condition display`: text by default, with an optional icon mode
 - `Weather update interval`: 1 to 6 hours, default 3 hours
 - `Weather retry interval`: 15 to 60 minutes, default 30 minutes
 
@@ -181,3 +188,48 @@ For a practical C watchface example, see:
 [C Watchface Tutorial](https://github.com/coredevices/c-watchface-tutorial)
 
 The project targets `emery` (Pebble Time 2) and `flint` (Pebble 2 Duo).
+
+### Weather icon font
+
+Icon mode uses the original, unmodified Weather Icons 2.0.12 TTF by Erik
+Flowers. The original v1.0 icon designs are credited to Lukas Bischoff; icon art
+from v1.1 onward and maintenance of Weather Icons are credited to Erik Flowers.
+
+Project and source:
+
+- https://erikflowers.github.io/weather-icons/
+- https://github.com/erikflowers/weather-icons
+- https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.12/font/weathericons-regular-webfont.ttf
+
+The font is licensed under the SIL Open Font License 1.1. The complete license
+text and third-party notice are stored in:
+
+- `licenses/weather-icons/OFL-1.1.txt`
+- `licenses/weather-icons/NOTICE.md`
+
+The original TTF is stored in the project at:
+
+```text
+resources/fonts/weathericons-regular-webfont.ttf
+```
+
+The bundled file is the unmodified Weather Icons 2.0.12 release asset. Its
+SHA-256 digest is:
+
+```text
+176bda6661f213dde47c2114d76e476ec8ca9aae07dd54f9550d2d28fe02b4fd
+```
+
+The full upstream TTF is about 97 KiB in the source tree. It is not copied whole
+into the installed watch application: `package.json` lists exactly the 16
+private-use Unicode glyphs required by `//GRID`, and the Pebble SDK converts only
+those glyphs into the platform-specific font resource at 24 px for `emery` and
+18 px for `flint`.
+
+## License
+
+Except for the third-party components listed in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), `//GRID` is licensed
+under the GNU General Public License v2.0 only (`GPL-2.0-only`).
+
+See [`LICENSE`](LICENSE) for the complete license text.

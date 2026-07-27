@@ -37,6 +37,8 @@ var clay = new Clay(clayConfig, customClay, { autoHandleEvents: false });
 
 var WEATHER_REQUEST_TIMEOUT_MS = 15000;
 var LOCATION_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+var WEATHER_DISPLAY_TEXT = 0;
+var WEATHER_DISPLAY_ICON = 1;
 var weatherInProgress = false;
 
 function integerNumber(value) {
@@ -55,6 +57,20 @@ function providerIdFromClay(value) {
     }
 
     return providerId;
+}
+
+function displayModeFromClay(value) {
+    var displayMode = value;
+
+    if (typeof displayMode === 'string' && /^\d+$/.test(displayMode)) {
+        displayMode = parseInt(displayMode, 10);
+    }
+
+    if (displayMode !== WEATHER_DISPLAY_TEXT && displayMode !== WEATHER_DISPLAY_ICON) {
+        return WEATHER_DISPLAY_TEXT;
+    }
+
+    return displayMode;
 }
 
 function hasMessageKey(payload, key) {
@@ -173,9 +189,12 @@ Pebble.addEventListener('webviewclosed', function(event) {
     }
 
     var providerId = providerIdFromClay(settings[messageKeys.WEATHER_PROVIDER_ID]);
+    var displayMode = displayModeFromClay(settings[messageKeys.WEATHER_DISPLAY_MODE]);
 
     settings[messageKeys.WEATHER_PROVIDER_ID] = providerId;
+    settings[messageKeys.WEATHER_DISPLAY_MODE] = displayMode;
     clay.setSettings('WEATHER_PROVIDER_ID', providerId);
+    clay.setSettings('WEATHER_DISPLAY_MODE', displayMode);
 
     Pebble.sendAppMessage(
         settings,

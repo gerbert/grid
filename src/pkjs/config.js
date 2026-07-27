@@ -46,6 +46,23 @@ module.exports = [
                 group: 'weather-details'
             },
             {
+                type: 'select',
+                messageKey: 'WEATHER_DISPLAY_MODE',
+                label: 'Condition display',
+                defaultValue: 0,
+                options: [
+                    {
+                        label: 'Text',
+                        value: 0
+                    },
+                    {
+                        label: 'Icon',
+                        value: 1
+                    }
+                ],
+                group: 'weather-details'
+            },
+            {
                 type: 'slider',
                 messageKey: 'WEATHER_UPDATE_INTERVAL_HOURS',
                 label: 'Update interval, hours',

@@ -33,11 +33,31 @@
             "WEATHER_RETRY_INTERVAL_MINUTES",
             "WEATHER_REQUEST",
             "WEATHER_FORECAST",
-            "WEATHER_UPDATE_FAILED"
+            "WEATHER_UPDATE_FAILED",
+            "WEATHER_DISPLAY_MODE"
         ],
         "projectType": "native",
         "resources": {
-            "media": []
+            "media": [
+                {
+                    "type": "font",
+                    "name": "FONT_WEATHER_ICONS_24",
+                    "file": "fonts/weathericons-regular-webfont.ttf",
+                    "characterRegex": "[\\uF07B\\uF00D\\uF00C\\uF002\\uF013\\uF014\\uF01C\\uF0B5\\uF019\\uF017\\uF01B\\uF076\\uF01A\\uF064\\uF01E\\uF015]",
+                    "targetPlatforms": [
+                        "emery"
+                    ]
+                },
+                {
+                    "type": "font",
+                    "name": "FONT_WEATHER_ICONS_18",
+                    "file": "fonts/weathericons-regular-webfont.ttf",
+                    "characterRegex": "[\\uF07B\\uF00D\\uF00C\\uF002\\uF013\\uF014\\uF01C\\uF0B5\\uF019\\uF017\\uF01B\\uF076\\uF01A\\uF064\\uF01E\\uF015]",
+                    "targetPlatforms": [
+                        "flint"
+                    ]
+                }
+            ]
         },
         "sdkVersion": "3",
         "targetPlatforms": [
@@ -49,5 +69,6 @@
             "watchface": true
         }
     },
-    "version": "2.6.0"
+    "version": "2.6.1",
+    "license": "GPL-2.0-only"
 }

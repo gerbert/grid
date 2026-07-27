@@ -4,20 +4,37 @@
  */
 #include "grid.h"
 
-#define SETTINGS_PERSIST_KEY 1
-#define SETTINGS_INBOX_SIZE  256
-#define SETTINGS_OUTBOX_SIZE 256
+#define SETTINGS_PERSIST_KEY    1
+#define SETTINGS_INBOX_SIZE     256
+#define SETTINGS_OUTBOX_SIZE    256
+#define SETTINGS_LEGACY_VERSION 3
 
 static SettingsStore *s_settings_store;
 
+typedef struct {
+    uint8_t enabled;
+    uint8_t provider_id;
+    uint8_t refresh_hrs;
+    uint8_t retry_min;
+} LegacyWeatherSettings;
+
+typedef struct {
+    uint8_t               version;
+    uint8_t               glance_duration_sec;
+    LegacyWeatherSettings weather;
+} LegacySettings;
+
+static bool settings_save(const SettingsStore *self);
+
 static void settings_set_defaults(Settings *settings)
 {
-    settings->version             = GRID_SETTINGS_VERSION;
-    settings->glance_duration_sec = GRID_GLANCE_DEFAULT_DURATION_SEC;
-    settings->weather.enabled     = GRID_WEATHER_DEFAULT_ENABLED;
-    settings->weather.provider_id = GRID_WEATHER_DEFAULT_PROVIDER_ID;
-    settings->weather.refresh_hrs = GRID_WEATHER_DEFAULT_UPDATE_INTERVAL_HOURS;
-    settings->weather.retry_min   = GRID_WEATHER_DEFAULT_RETRY_INTERVAL_MINUTES;
+    settings->version              = GRID_SETTINGS_VERSION;
+    settings->glance_duration_sec  = GRID_GLANCE_DEFAULT_DURATION_SEC;
+    settings->weather.enabled      = GRID_WEATHER_DEFAULT_ENABLED;
+    settings->weather.provider_id  = GRID_WEATHER_DEFAULT_PROVIDER_ID;
+    settings->weather.refresh_hrs  = GRID_WEATHER_DEFAULT_UPDATE_INTERVAL_HOURS;
+    settings->weather.retry_min    = GRID_WEATHER_DEFAULT_RETRY_INTERVAL_MINUTES;
+    settings->weather.display_mode = GRID_WEATHER_DEFAULT_DISPLAY_MODE;
 }
 
 static void settings_validate(Settings *settings)
@@ -37,25 +54,50 @@ static void settings_validate(Settings *settings)
     if (settings->weather.retry_min < GRID_WEATHER_MIN_RETRY_INTERVAL_MINUTES ||
         settings->weather.retry_min > GRID_WEATHER_MAX_RETRY_INTERVAL_MINUTES)
         settings->weather.retry_min = GRID_WEATHER_DEFAULT_RETRY_INTERVAL_MINUTES;
+
+    if (settings->weather.display_mode > WEATHER_DISPLAY_ICON)
+        settings->weather.display_mode = GRID_WEATHER_DEFAULT_DISPLAY_MODE;
 }
 
 static bool settings_load(SettingsStore *self)
 {
     settings_set_defaults(&self->value);
 
-    if (!persist_exists(SETTINGS_PERSIST_KEY) || persist_get_size(SETTINGS_PERSIST_KEY) != (int)sizeof(self->value))
+    if (!persist_exists(SETTINGS_PERSIST_KEY))
         return false;
 
-    Settings stored = {0};
+    int stored_size = persist_get_size(SETTINGS_PERSIST_KEY);
 
-    if (persist_read_data(SETTINGS_PERSIST_KEY, &stored, sizeof(stored)) != (int)sizeof(stored) ||
-        stored.version != GRID_SETTINGS_VERSION)
-        return false;
+    if (stored_size == (int)sizeof(self->value)) {
+        Settings stored = {0};
 
-    settings_validate(&stored);
-    self->value = stored;
+        if (persist_read_data(SETTINGS_PERSIST_KEY, &stored, sizeof(stored)) != (int)sizeof(stored) ||
+            stored.version != GRID_SETTINGS_VERSION)
+            return false;
 
-    return true;
+        settings_validate(&stored);
+        self->value = stored;
+        return true;
+    }
+
+    if (stored_size == (int)sizeof(LegacySettings)) {
+        LegacySettings stored = {0};
+
+        if (persist_read_data(SETTINGS_PERSIST_KEY, &stored, sizeof(stored)) != (int)sizeof(stored) ||
+            stored.version != SETTINGS_LEGACY_VERSION)
+            return false;
+
+        self->value.glance_duration_sec = stored.glance_duration_sec;
+        self->value.weather.enabled     = stored.weather.enabled;
+        self->value.weather.provider_id = stored.weather.provider_id;
+        self->value.weather.refresh_hrs = stored.weather.refresh_hrs;
+        self->value.weather.retry_min   = stored.weather.retry_min;
+        settings_validate(&self->value);
+        settings_save(self);
+        return true;
+    }
+
+    return false;
 }
 
 static bool settings_save(const SettingsStore *self)
@@ -109,6 +151,12 @@ static void inbox_received_handler(DictionaryIterator *iterator, __attribute__((
         changed                       = true;
     }
 
+    Tuple *display_mode = dict_find(iterator, MESSAGE_KEY_WEATHER_DISPLAY_MODE);
+    if (display_mode) {
+        self->value.weather.display_mode = (uint8_t)display_mode->value->int32;
+        changed                          = true;
+    }
+
     if (!changed)
         return;
 
@@ -117,10 +165,14 @@ static void inbox_received_handler(DictionaryIterator *iterator, __attribute__((
     if (!settings_save(self))
         return;
 
-    // Apply weather settings on the next minute tick.
-    // Only the scheduler timestamp is changed here; the tick performs I/O.
-    if (app && app->mounted && self->value.weather.enabled)
-        weather_schedule_refresh(&app->weather);
+    if (app && app->mounted) {
+        weather_refresh_display(&app->weather);
+
+        // Apply weather settings on the next minute tick.
+        // Only the scheduler timestamp is changed here; the tick performs I/O.
+        if (self->value.weather.enabled)
+            weather_schedule_refresh(&app->weather);
+    }
 }
 
 static void outbox_failed_handler(DictionaryIterator *iterator, __attribute__((unused)) AppMessageResult reason,
