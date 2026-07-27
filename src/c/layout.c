@@ -20,7 +20,7 @@
 #define GRID_COLOR       GColorWhite
 #define ACCENT_COLOR     GColorWhite
 #define REF_TIME_Y       24
-#define REF_WEATHER_Y    87
+#define REF_WEATHER_Y    82
 #define REF_DATE_Y       108
 #define WEATHER_HEIGHT   16
 #define DATE_HEIGHT      21

@@ -55,7 +55,7 @@ static void settings_validate(Settings *settings)
         settings->weather.retry_min > GRID_WEATHER_MAX_RETRY_INTERVAL_MINUTES)
         settings->weather.retry_min = GRID_WEATHER_DEFAULT_RETRY_INTERVAL_MINUTES;
 
-    if (settings->weather.display_mode > WEATHER_DISPLAY_ICON)
+    if (settings->weather.display_mode > WEATHER_DISPLAY_TEMPERATURE)
         settings->weather.display_mode = GRID_WEATHER_DEFAULT_DISPLAY_MODE;
 }
 

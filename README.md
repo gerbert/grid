@@ -15,7 +15,7 @@ sleep time.
 - Doppler animation triggered by a wrist flick
 - Configurable glance duration from 3 to 30 seconds
 - Optional 12-hour weather forecast with a selectable provider
-- Text or icon display for the current weather condition
+- Text, icon, combined icon-and-text, or temperature-only weather display
 - Configurable weather update interval from 1 to 6 hours
 - Configurable failed-update retry interval from 15 to 60 minutes
 - 12-hour and 24-hour time formats
@@ -97,7 +97,10 @@ is sent to the watch as one compact byte array.
 The watch does not interpret provider-specific weather codes. It stores one
 normalized forecast in RAM and selects the current slot using the received start
 time, interval, and element count. A matching C enum is used only to select the
-display text or icon. Icon mode uses selected glyphs from Weather Icons 2.0.12.
+display text, an icon, both, or only the temperature. Each display is centered
+using its measured content width. In the combined mode, a long condition name
+is wrapped into two lines to the right of the temperature and icon. Icon modes
+use selected glyphs from Weather Icons 2.0.12.
 The original TTF is used without modification, while the Pebble resource
 configuration limits conversion to the 16 glyphs required by the watchface.
 The selected glyphs are rasterized at platform-specific sizes for Pebble Time 2
@@ -151,7 +154,8 @@ Available options:
 - `Glance duration`: 3 to 30 seconds, default 7 seconds
 - `Enable weather`: disabled by default
 - `Provider`: Open-Meteo by default
-- `Condition display`: text by default, with an optional icon mode
+- `Condition display`: text by default, with optional icon, icon-plus-text,
+  and temperature-only modes
 - `Weather update interval`: 1 to 6 hours, default 3 hours
 - `Weather retry interval`: 15 to 60 minutes, default 30 minutes
 

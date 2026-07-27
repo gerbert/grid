@@ -39,6 +39,8 @@ var WEATHER_REQUEST_TIMEOUT_MS = 15000;
 var LOCATION_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 var WEATHER_DISPLAY_TEXT = 0;
 var WEATHER_DISPLAY_ICON = 1;
+var WEATHER_DISPLAY_ICON_TEXT = 2;
+var WEATHER_DISPLAY_TEMPERATURE = 3;
 var weatherInProgress = false;
 
 function integerNumber(value) {
@@ -66,7 +68,10 @@ function displayModeFromClay(value) {
         displayMode = parseInt(displayMode, 10);
     }
 
-    if (displayMode !== WEATHER_DISPLAY_TEXT && displayMode !== WEATHER_DISPLAY_ICON) {
+    if (displayMode !== WEATHER_DISPLAY_TEXT &&
+        displayMode !== WEATHER_DISPLAY_ICON &&
+        displayMode !== WEATHER_DISPLAY_ICON_TEXT &&
+        displayMode !== WEATHER_DISPLAY_TEMPERATURE) {
         return WEATHER_DISPLAY_TEXT;
     }
 

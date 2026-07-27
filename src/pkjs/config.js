@@ -58,6 +58,14 @@ module.exports = [
                     {
                         label: 'Icon',
                         value: 1
+                    },
+                    {
+                        label: 'Icon + text',
+                        value: 2
+                    },
+                    {
+                        label: 'Temperature only',
+                        value: 3
                     }
                 ],
                 group: 'weather-details'

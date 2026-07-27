@@ -27,8 +27,10 @@
 typedef struct App App;
 
 typedef enum {
-    WEATHER_DISPLAY_TEXT = 0,
-    WEATHER_DISPLAY_ICON = 1,
+    WEATHER_DISPLAY_TEXT        = 0,
+    WEATHER_DISPLAY_ICON        = 1,
+    WEATHER_DISPLAY_ICON_TEXT   = 2,
+    WEATHER_DISPLAY_TEMPERATURE = 3,
 } WeatherDisplayMode;
 
 typedef enum {
