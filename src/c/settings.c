@@ -113,9 +113,10 @@ static void inbox_received_handler(DictionaryIterator *iterator, __attribute__((
     if (!self || !iterator)
         return;
 
-    Tuple *forecast = dict_find(iterator, MESSAGE_KEY_WEATHER_FORECAST);
+    Tuple *forecast        = dict_find(iterator, MESSAGE_KEY_WEATHER_FORECAST);
+    Tuple *weather_failure = dict_find(iterator, MESSAGE_KEY_WEATHER_UPDATE_FAILED);
 
-    if (app && app->mounted && forecast)
+    if (app && app->mounted && (forecast || weather_failure))
         weather_handle_message(&app->weather, &self->value, iterator);
 
     bool changed = false;

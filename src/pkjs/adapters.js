@@ -2,9 +2,9 @@ var weatherProviders = require('./providers');
 var weatherConditions = require('./conditions');
 
 var WEATHER_SLOT_COUNT = 12;
-var WEATHER_FORECAST_HEADER_SIZE = 7;
+var WEATHER_FORECAST_HEADER_SIZE = 5;
 var WEATHER_FORECAST_SLOT_SIZE = 2;
-var SECONDS_PER_MINUTE = 60;
+var SECONDS_PER_HOUR = 60 * 60;
 
 function finiteNumber(value) {
     return typeof value === 'number' && isFinite(value);
@@ -104,26 +104,11 @@ function normalizeOpenMeteo(responseText) {
 
     var count = times.length;
     var firstTimestamp = times[0];
-    var intervalMinutes = 60;
     var i;
 
-    if (!integerNumber(firstTimestamp) || firstTimestamp < 0 || firstTimestamp > 0xffffffff) {
+    if (!integerNumber(firstTimestamp) || firstTimestamp < 0 || firstTimestamp > 0xffffffff ||
+        firstTimestamp % SECONDS_PER_HOUR !== 0) {
         return null;
-    }
-
-    if (count > 1) {
-        var intervalSeconds = times[1] - times[0];
-
-        if (!integerNumber(intervalSeconds) || intervalSeconds <= 0 ||
-            intervalSeconds % SECONDS_PER_MINUTE !== 0) {
-            return null;
-        }
-
-        intervalMinutes = intervalSeconds / SECONDS_PER_MINUTE;
-
-        if (intervalMinutes > 0xffff) {
-            return null;
-        }
     }
 
     var slots = [];
@@ -134,7 +119,7 @@ function normalizeOpenMeteo(responseText) {
         var weatherCode = weatherCodes[i];
 
         if (!integerNumber(timestamp) ||
-            timestamp !== firstTimestamp + i * intervalMinutes * SECONDS_PER_MINUTE ||
+            timestamp !== firstTimestamp + i * SECONDS_PER_HOUR ||
             temperature === null || !integerNumber(weatherCode)) {
             return null;
         }
@@ -147,15 +132,9 @@ function normalizeOpenMeteo(responseText) {
 
     return {
         count: count,
-        intervalMinutes: intervalMinutes,
         startTimestamp: firstTimestamp,
         slots: slots
     };
-}
-
-function writeUint16(payload, offset, value) {
-    payload[offset] = value & 0xff;
-    payload[offset + 1] = (value >>> 8) & 0xff;
 }
 
 function writeUint32(payload, offset, value) {
@@ -181,8 +160,7 @@ function encodeForecast(forecast) {
     }
 
     payload[0] = forecast.count;
-    writeUint16(payload, 1, forecast.intervalMinutes);
-    writeUint32(payload, 3, forecast.startTimestamp);
+    writeUint32(payload, 1, forecast.startTimestamp);
 
     for (i = 0; i < forecast.count; i += 1) {
         var offset = WEATHER_FORECAST_HEADER_SIZE + i * WEATHER_FORECAST_SLOT_SIZE;

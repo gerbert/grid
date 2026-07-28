@@ -160,22 +160,26 @@ static GFont weather_get_icon_font(Weather *self)
     return self->icon_font;
 }
 
+static uint8_t weather_slot_index(time_t timestamp)
+{
+    // Unix time is independent of timezone and DST. Consecutive hourly
+    // timestamps therefore advance through the 12 slots cyclically.
+    return (uint8_t)(((uint32_t)timestamp / SECONDS_PER_HOUR) % WEATHER_SLOT_COUNT);
+}
+
 static const WeatherSlot *weather_current_slot(const Weather *self, time_t now)
 {
-    if (!self || self->count == 0 || self->count > WEATHER_SLOT_COUNT || self->interval_minutes == 0)
+    if (!self || now < 0)
         return NULL;
 
-    if (now <= self->start_at)
-        return &self->slots[0];
+    return &self->slots[weather_slot_index(now)];
+}
 
-    time_t   interval_seconds = (time_t)self->interval_minutes * SECONDS_PER_MINUTE;
-    time_t   elapsed          = now - self->start_at;
-    uint32_t index            = (uint32_t)(elapsed / interval_seconds);
+static bool weather_slot_is_valid(const Weather *self, time_t now)
+{
+    const WeatherSlot *slot = weather_current_slot(self, now);
 
-    if (index >= self->count)
-        index = self->count - 1;
-
-    return &self->slots[index];
+    return slot && slot->valid;
 }
 
 static GSize weather_measure_text(const char *text, GFont font, int max_width)
@@ -422,7 +426,7 @@ static void weather_layer_update_proc(Layer *layer, GContext *ctx)
 
     const WeatherSlot *slot = weather_current_slot(self, time(NULL));
 
-    if (!slot)
+    if (!slot || !slot->valid)
         return;
 
     GRect bounds = layer_get_bounds(layer);
@@ -444,29 +448,26 @@ static void weather_clear(Weather *self)
 
     weather_release_icon_font(self);
     memset(self->slots, 0, sizeof(self->slots));
-    self->start_at         = 0;
-    self->next_update_at   = 0;
-    self->interval_minutes = 0;
-    self->count            = 0;
-    self->valid            = false;
+    self->next_update_at = 0;
 
     if (self->layer)
         layer_set_hidden(self->layer, true);
 }
 
-static void weather_finish_update(Weather *self, const Settings *settings)
+static void weather_finish_update(Weather *self, const Settings *settings, time_t now)
 {
     if (!self)
         return;
-
-    self->valid = true;
 
     if (!settings || !settings->weather.enabled) {
         self->next_update_at = 0;
         return;
     }
 
-    self->next_update_at = time(NULL) + (time_t)weather_refresh_hours(settings) * SECONDS_PER_HOUR;
+    if (weather_slot_is_valid(self, now))
+        self->next_update_at = now + (time_t)weather_refresh_hours(settings) * SECONDS_PER_HOUR;
+    else
+        self->next_update_at = now + (time_t)weather_retry_minutes(settings) * SECONDS_PER_MINUTE;
 }
 
 static bool weather_request_update(Weather *self, const Settings *settings, time_t now)
@@ -476,7 +477,6 @@ static bool weather_request_update(Weather *self, const Settings *settings, time
 
     // Every request pre-schedules the next retry. A successful response replaces
     // this timestamp with the regular update interval.
-    self->valid          = false;
     self->next_update_at = now + (time_t)weather_retry_minutes(settings) * SECONDS_PER_MINUTE;
 
     DictionaryIterator *iterator = NULL;
@@ -493,11 +493,6 @@ static bool weather_request_update(Weather *self, const Settings *settings, time
     return true;
 }
 
-static uint16_t weather_read_uint16(const uint8_t *value)
-{
-    return (uint16_t)value[0] | (uint16_t)((uint16_t)value[1] << 8);
-}
-
 static uint32_t weather_read_uint32(const uint8_t *value)
 {
     return (uint32_t)value[0] | ((uint32_t)value[1] << 8) | ((uint32_t)value[2] << 16) | ((uint32_t)value[3] << 24);
@@ -508,13 +503,13 @@ static bool weather_apply_forecast(Weather *self, const Settings *settings, cons
     if (!self || !settings || !tuple || tuple->type != TUPLE_BYTE_ARRAY || tuple->length < WEATHER_FORECAST_HEADER_SIZE)
         return false;
 
-    const uint8_t *payload          = tuple->value->data;
-    uint8_t        count            = payload[0];
-    uint16_t       interval_minutes = weather_read_uint16(payload + 1);
-    uint32_t       start_at         = weather_read_uint32(payload + 3);
-    uint16_t       expected_length  = WEATHER_FORECAST_HEADER_SIZE + count * WEATHER_FORECAST_SLOT_SIZE;
+    const uint8_t *payload         = tuple->value->data;
+    uint8_t        count           = payload[0];
+    uint32_t       first_timestamp = weather_read_uint32(payload + 1);
+    uint16_t       expected_length = WEATHER_FORECAST_HEADER_SIZE + count * WEATHER_FORECAST_SLOT_SIZE;
 
-    if (count == 0 || count > WEATHER_SLOT_COUNT || interval_minutes == 0 || tuple->length != expected_length)
+    if (count == 0 || count > WEATHER_SLOT_COUNT || tuple->length != expected_length ||
+        first_timestamp % SECONDS_PER_HOUR != 0)
         return false;
 
     for (uint8_t i = 0; i < count; i++) {
@@ -528,16 +523,15 @@ static bool weather_apply_forecast(Weather *self, const Settings *settings, cons
 
     for (uint8_t i = 0; i < count; i++) {
         const uint8_t *slot_payload = payload + WEATHER_FORECAST_HEADER_SIZE + i * WEATHER_FORECAST_SLOT_SIZE;
+        time_t         timestamp    = (time_t)first_timestamp + (time_t)i * SECONDS_PER_HOUR;
+        WeatherSlot   *slot         = &self->slots[weather_slot_index(timestamp)];
 
-        self->slots[i].temperature_c = (int8_t)slot_payload[0];
-        self->slots[i].condition_id  = slot_payload[1];
+        slot->temperature_c = (int8_t)slot_payload[0];
+        slot->condition_id  = slot_payload[1];
+        slot->valid         = true;
     }
 
-    self->count            = count;
-    self->interval_minutes = interval_minutes;
-    self->start_at         = (time_t)start_at;
-
-    weather_finish_update(self, settings);
+    weather_finish_update(self, settings, time(NULL));
     weather_refresh_display(self);
     return true;
 }
@@ -571,7 +565,7 @@ void weather_refresh_display(Weather *self)
     if (!self || !self->layer)
         return;
 
-    if (!self->settings || !self->settings->weather.enabled || self->count == 0) {
+    if (!self->settings || !self->settings->weather.enabled || !weather_slot_is_valid(self, time(NULL))) {
         weather_release_icon_font(self);
         layer_set_hidden(self->layer, true);
         return;
@@ -600,21 +594,29 @@ void weather_tick(Weather *self, const Settings *settings, time_t now)
         return;
 
     if (!settings->weather.enabled) {
-        if (self->count || self->next_update_at || self->valid)
+        if (self->next_update_at)
             weather_clear(self);
 
         return;
     }
 
-    if (self->count > 0 && self->layer && self->interval_minutes > 0 && now >= self->start_at) {
-        time_t interval_seconds = (time_t)self->interval_minutes * SECONDS_PER_MINUTE;
-
-        if ((now - self->start_at) % interval_seconds < SECONDS_PER_MINUTE)
-            layer_mark_dirty(self->layer);
-    }
-
     if (self->next_update_at == 0)
         self->next_update_at = now;
+
+    const WeatherSlot *slot = weather_current_slot(self, now);
+
+    if (!slot || !slot->valid) {
+        if (self->layer)
+            layer_set_hidden(self->layer, true);
+
+        time_t retry_at = now + (time_t)weather_retry_minutes(settings) * SECONDS_PER_MINUTE;
+
+        // Do not move an already scheduled request further into the future.
+        if (self->next_update_at == 0 || self->next_update_at > retry_at)
+            self->next_update_at = retry_at;
+    } else if (self->layer && now % SECONDS_PER_HOUR < SECONDS_PER_MINUTE) {
+        weather_refresh_display(self);
+    }
 
     if (self->next_update_at > now)
         return;
@@ -628,11 +630,14 @@ void weather_handle_message(Weather *self, const Settings *settings, DictionaryI
         return;
 
     Tuple *forecast = dict_find(iterator, MESSAGE_KEY_WEATHER_FORECAST);
+    Tuple *failure  = dict_find(iterator, MESSAGE_KEY_WEATHER_UPDATE_FAILED);
 
     if (forecast && weather_apply_forecast(self, settings, forecast))
         return;
 
-    self->valid          = false;
+    if (!forecast && !failure)
+        return;
+
     self->next_update_at = time(NULL) + (time_t)weather_retry_minutes(settings) * SECONDS_PER_MINUTE;
 }
 

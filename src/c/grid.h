@@ -20,7 +20,7 @@
 #define GRID_WEATHER_DEFAULT_DISPLAY_MODE           WEATHER_DISPLAY_TEXT
 
 #define WEATHER_SLOT_COUNT           12
-#define WEATHER_FORECAST_HEADER_SIZE 7
+#define WEATHER_FORECAST_HEADER_SIZE 5
 #define WEATHER_FORECAST_SLOT_SIZE   2
 
 typedef struct App App;
@@ -114,6 +114,8 @@ typedef struct {
 typedef struct {
     int8_t  temperature_c;
     uint8_t condition_id;
+    // True when this slot was populated by the last accepted forecast.
+    bool valid;
 } WeatherSlot;
 
 typedef struct {
@@ -126,23 +128,11 @@ typedef struct {
     // Custom icon font, loaded only when icon mode is drawn.
     GFont icon_font;
 
-    // Forecast slots stored in chronological order.
+    // Forecast slots addressed by the Unix hour modulo WEATHER_SLOT_COUNT.
     WeatherSlot slots[WEATHER_SLOT_COUNT];
 
-    // Timestamp assigned to the first forecast slot.
-    time_t start_at;
-
-    // Next scheduled weather request.
+    // Unix timestamp of the next scheduled weather request.
     time_t next_update_at;
-
-    // Time between adjacent forecast slots.
-    uint16_t interval_minutes;
-
-    // Number of populated forecast slots; zero means that no forecast is available.
-    uint8_t count;
-
-    // True only after a new forecast has been successfully applied; cleared when the next request starts.
-    bool valid;
 } Weather;
 
 typedef struct {
