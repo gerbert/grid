@@ -17,7 +17,7 @@ sleep time.
 - Optional 12-hour weather forecast with a selectable provider
 - Text, icon, combined icon-and-text, or temperature-only weather display
 - Configurable weather update interval from 1 to 6 hours
-- Configurable failed-update retry interval from 15 to 60 minutes
+- Configurable failed-update retry interval from 1 to 30 minutes
 - 12-hour and 24-hour time formats
 - Date shown in bracket notation
 - Segmented battery bar with percentage
@@ -110,9 +110,12 @@ No weather values are written to persistent watch storage. Restarting the
 watchface clears the forecast until the next successful synchronization.
 
 After weather is enabled, the existing minute tick is the only watch-side
-scheduler. It starts an update when `next_update_at` is due. Failed or timed-out
-updates leave the previous forecast unchanged and schedule the next attempt
-using the configured retry interval.
+scheduler. It starts an update when `next_update_at` is due and immediately moves
+that timestamp forward by the retry interval. This provides unlimited retries
+even when no response is received. A successful update sets the `valid` flag and
+replaces the retry timestamp with the regular update interval. An explicit
+failure clears `valid` and leaves the already scheduled retry unchanged. The
+previous forecast remains available while retries continue.
 
 The wrist gesture never starts a weather request. The weather layer only reads
 the current normalized in-memory slot.
@@ -157,7 +160,7 @@ Available options:
 - `Condition display`: text by default, with optional icon, icon-plus-text,
   and temperature-only modes
 - `Weather update interval`: 1 to 6 hours, default 3 hours
-- `Weather retry interval`: 15 to 60 minutes, default 30 minutes
+- `Weather retry interval`: 1 to 30 minutes, default 30 minutes
 
 The watch stores only the numeric provider index. Provider selection and API
 handling are implemented in PebbleKit JS.

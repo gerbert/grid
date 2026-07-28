@@ -448,53 +448,48 @@ static void weather_clear(Weather *self)
     self->next_update_at   = 0;
     self->interval_minutes = 0;
     self->count            = 0;
-    self->in_progress      = false;
-    self->refresh_pending  = false;
+    self->valid            = false;
 
     if (self->layer)
         layer_set_hidden(self->layer, true);
 }
 
-static void weather_schedule_retry(Weather *self, const Settings *settings)
+static void weather_finish_update(Weather *self, const Settings *settings)
 {
     if (!self)
         return;
 
-    time_t now = time(NULL);
+    self->valid = true;
 
-    // A queued refresh is already due and will run on the next minute tick.
-    if (self->refresh_pending)
-        self->next_update_at = now;
-    else
-        self->next_update_at = now + (time_t)weather_retry_minutes(settings) * SECONDS_PER_MINUTE;
-    self->in_progress     = false;
-    self->refresh_pending = false;
+    if (!settings || !settings->weather.enabled) {
+        self->next_update_at = 0;
+        return;
+    }
+
+    self->next_update_at = time(NULL) + (time_t)weather_refresh_hours(settings) * SECONDS_PER_HOUR;
 }
 
-static bool weather_request_update(Weather *self, const Settings *settings)
+static bool weather_request_update(Weather *self, const Settings *settings, time_t now)
 {
-    if (!self || !settings || !settings->weather.enabled || self->in_progress)
+    if (!self || !settings || !settings->weather.enabled)
         return false;
+
+    // Every request pre-schedules the next retry. A successful response replaces
+    // this timestamp with the regular update interval.
+    self->valid          = false;
+    self->next_update_at = now + (time_t)weather_retry_minutes(settings) * SECONDS_PER_MINUTE;
 
     DictionaryIterator *iterator = NULL;
 
-    if (app_message_outbox_begin(&iterator) != APP_MSG_OK || !iterator) {
-        weather_schedule_retry(self, settings);
+    if (app_message_outbox_begin(&iterator) != APP_MSG_OK || !iterator)
         return false;
-    }
 
-    if (dict_write_uint8(iterator, MESSAGE_KEY_WEATHER_REQUEST, settings->weather.provider_id) != DICT_OK) {
-        weather_schedule_retry(self, settings);
+    if (dict_write_uint8(iterator, MESSAGE_KEY_WEATHER_REQUEST, settings->weather.provider_id) != DICT_OK)
         return false;
-    }
 
-    if (app_message_outbox_send() != APP_MSG_OK) {
-        weather_schedule_retry(self, settings);
+    if (app_message_outbox_send() != APP_MSG_OK)
         return false;
-    }
 
-    self->in_progress    = true;
-    self->next_update_at = time(NULL) + (time_t)GRID_WEATHER_REQUEST_TIMEOUT_MINUTES * SECONDS_PER_MINUTE;
     return true;
 }
 
@@ -538,20 +533,11 @@ static bool weather_apply_forecast(Weather *self, const Settings *settings, cons
         self->slots[i].condition_id  = slot_payload[1];
     }
 
-    time_t now = time(NULL);
-
     self->count            = count;
     self->interval_minutes = interval_minutes;
     self->start_at         = (time_t)start_at;
 
-    if (self->refresh_pending)
-        self->next_update_at = now;
-    else
-        self->next_update_at = now + (time_t)weather_refresh_hours(settings) * SECONDS_PER_HOUR;
-
-    self->in_progress     = false;
-    self->refresh_pending = false;
-
+    weather_finish_update(self, settings);
     weather_refresh_display(self);
     return true;
 }
@@ -604,13 +590,6 @@ void weather_schedule_refresh(Weather *self)
     if (!self)
         return;
 
-    if (self->in_progress) {
-        self->refresh_pending = true;
-        return;
-    }
-
-    self->refresh_pending = false;
-
     // weather_tick() runs once per minute, so a due timestamp targets the next tick.
     self->next_update_at = time(NULL);
 }
@@ -621,14 +600,11 @@ void weather_tick(Weather *self, const Settings *settings, time_t now)
         return;
 
     if (!settings->weather.enabled) {
-        if (self->count || self->in_progress || self->refresh_pending || self->next_update_at)
+        if (self->count || self->next_update_at || self->valid)
             weather_clear(self);
 
         return;
     }
-
-    if (self->next_update_at == 0)
-        self->next_update_at = now;
 
     if (self->count > 0 && self->layer && self->interval_minutes > 0 && now >= self->start_at) {
         time_t interval_seconds = (time_t)self->interval_minutes * SECONDS_PER_MINUTE;
@@ -637,17 +613,13 @@ void weather_tick(Weather *self, const Settings *settings, time_t now)
             layer_mark_dirty(self->layer);
     }
 
-    if (self->in_progress) {
-        if (self->next_update_at <= now)
-            weather_schedule_retry(self, settings);
-
-        return;
-    }
+    if (self->next_update_at == 0)
+        self->next_update_at = now;
 
     if (self->next_update_at > now)
         return;
 
-    weather_request_update(self, settings);
+    weather_request_update(self, settings, now);
 }
 
 void weather_handle_message(Weather *self, const Settings *settings, DictionaryIterator *iterator)
@@ -657,22 +629,11 @@ void weather_handle_message(Weather *self, const Settings *settings, DictionaryI
 
     Tuple *forecast = dict_find(iterator, MESSAGE_KEY_WEATHER_FORECAST);
 
-    if (forecast) {
-        if (!weather_apply_forecast(self, settings, forecast))
-            weather_schedule_retry(self, settings);
-        return;
-    }
-
-    if (dict_find(iterator, MESSAGE_KEY_WEATHER_UPDATE_FAILED))
-        weather_update_failed(self, settings);
-}
-
-void weather_update_failed(Weather *self, const Settings *settings)
-{
-    if (!self || !self->in_progress)
+    if (forecast && weather_apply_forecast(self, settings, forecast))
         return;
 
-    weather_schedule_retry(self, settings);
+    self->valid          = false;
+    self->next_update_at = time(NULL) + (time_t)weather_retry_minutes(settings) * SECONDS_PER_MINUTE;
 }
 
 void weather_deinit(Weather *self)

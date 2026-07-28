@@ -85,8 +85,8 @@ module.exports = [
                 messageKey: 'WEATHER_RETRY_INTERVAL_MINUTES',
                 label: 'Retry interval, minutes',
                 defaultValue: 30,
-                min: 15,
-                max: 60,
+                min: 1,
+                max: 30,
                 step: 1,
                 group: 'weather-details'
             }

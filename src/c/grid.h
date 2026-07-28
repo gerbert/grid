@@ -15,9 +15,8 @@
 #define GRID_WEATHER_MIN_UPDATE_INTERVAL_HOURS      1
 #define GRID_WEATHER_MAX_UPDATE_INTERVAL_HOURS      6
 #define GRID_WEATHER_DEFAULT_RETRY_INTERVAL_MINUTES 30
-#define GRID_WEATHER_MIN_RETRY_INTERVAL_MINUTES     15
-#define GRID_WEATHER_MAX_RETRY_INTERVAL_MINUTES     60
-#define GRID_WEATHER_REQUEST_TIMEOUT_MINUTES        2
+#define GRID_WEATHER_MIN_RETRY_INTERVAL_MINUTES     1
+#define GRID_WEATHER_MAX_RETRY_INTERVAL_MINUTES     30
 #define GRID_WEATHER_DEFAULT_DISPLAY_MODE           WEATHER_DISPLAY_TEXT
 
 #define WEATHER_SLOT_COUNT           12
@@ -133,7 +132,7 @@ typedef struct {
     // Timestamp assigned to the first forecast slot.
     time_t start_at;
 
-    // Next request time while idle, or the active request deadline while waiting for a response.
+    // Next scheduled weather request.
     time_t next_update_at;
 
     // Time between adjacent forecast slots.
@@ -142,11 +141,8 @@ typedef struct {
     // Number of populated forecast slots; zero means that no forecast is available.
     uint8_t count;
 
-    // True while waiting for a weather response from PebbleKit JS.
-    bool in_progress;
-
-    // Settings changed during an active request, so another refresh must follow its completion.
-    bool refresh_pending;
+    // True only after a new forecast has been successfully applied; cleared when the next request starts.
+    bool valid;
 } Weather;
 
 typedef struct {
@@ -188,7 +184,6 @@ void weather_refresh_display(Weather *weather);
 void weather_schedule_refresh(Weather *weather);
 void weather_tick(Weather *weather, const Settings *settings, time_t now);
 void weather_handle_message(Weather *weather, const Settings *settings, DictionaryIterator *iterator);
-void weather_update_failed(Weather *weather, const Settings *settings);
 void weather_deinit(Weather *weather);
 
 bool doppler_init(Doppler *doppler, Layer *root, Layer *target, GRect bounds);

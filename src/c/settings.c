@@ -114,9 +114,8 @@ static void inbox_received_handler(DictionaryIterator *iterator, __attribute__((
         return;
 
     Tuple *forecast = dict_find(iterator, MESSAGE_KEY_WEATHER_FORECAST);
-    Tuple *failed   = dict_find(iterator, MESSAGE_KEY_WEATHER_UPDATE_FAILED);
 
-    if (app && app->mounted && (forecast || failed))
+    if (app && app->mounted && forecast)
         weather_handle_message(&app->weather, &self->value, iterator);
 
     bool changed = false;
@@ -175,18 +174,6 @@ static void inbox_received_handler(DictionaryIterator *iterator, __attribute__((
     }
 }
 
-static void outbox_failed_handler(DictionaryIterator *iterator, __attribute__((unused)) AppMessageResult reason,
-                                  __attribute__((unused)) void *context)
-{
-    SettingsStore *self = s_settings_store;
-    App           *app  = self ? self->app : NULL;
-
-    if (!app || !app->mounted || !iterator || !dict_find(iterator, MESSAGE_KEY_WEATHER_REQUEST))
-        return;
-
-    weather_update_failed(&app->weather, &self->value);
-}
-
 bool settings_init(SettingsStore *self, App *app)
 {
     if (!self || !app || s_settings_store)
@@ -197,7 +184,6 @@ bool settings_init(SettingsStore *self, App *app)
     s_settings_store = self;
 
     app_message_register_inbox_received(inbox_received_handler);
-    app_message_register_outbox_failed(outbox_failed_handler);
     self->callbacks_registered = true;
 
     AppMessageResult result = app_message_open(SETTINGS_INBOX_SIZE, SETTINGS_OUTBOX_SIZE);
