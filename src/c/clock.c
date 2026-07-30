@@ -62,6 +62,18 @@ static int battery_filled_segments(int pct)
     return (BATTERY_SEGMENTS * pct) / 100;
 }
 
+static void draw_dim_battery_segment(GContext *ctx, GRect segment, GColor color)
+{
+    graphics_context_set_stroke_color(ctx, color);
+
+    for (int y = segment.origin.y; y < segment.origin.y + segment.size.h; y++) {
+        for (int x = segment.origin.x; x < segment.origin.x + segment.size.w; x++) {
+            if ((x + y) % 2 == 0)
+                graphics_draw_pixel(ctx, GPoint(x, y));
+        }
+    }
+}
+
 static void draw_date(const Clock *self, GContext *ctx)
 {
     GFont font = fonts_get_system_font(TIME_DATE_FONT);
@@ -73,10 +85,12 @@ static void draw_date(const Clock *self, GContext *ctx)
 
 static void draw_battery_bar(const Clock *self, GContext *ctx)
 {
-    GRect  area   = self->geometry->battery_bar;
-    int    seg_w  = (area.size.w - (BATTERY_SEGMENTS - 1) * BATTERY_SEGMENT_GAP) / BATTERY_SEGMENTS;
-    int    filled = battery_filled_segments(self->battery_pct);
-    GColor color  = battery_color_for_pct(self->battery_pct);
+    GRect area   = self->geometry->battery_bar;
+    int   seg_w  = (area.size.w - (BATTERY_SEGMENTS - 1) * BATTERY_SEGMENT_GAP) / BATTERY_SEGMENTS;
+    int   filled = battery_filled_segments(self->battery_pct);
+    bool  has_partial =
+        self->battery_pct > 10 && self->battery_pct < 100 && (BATTERY_SEGMENTS * self->battery_pct) % 100 != 0;
+    GColor color = battery_color_for_pct(self->battery_pct);
 
     for (int i = 0; i < BATTERY_SEGMENTS; i++) {
         int   x   = area.origin.x + i * (seg_w + BATTERY_SEGMENT_GAP);
@@ -85,6 +99,8 @@ static void draw_battery_bar(const Clock *self, GContext *ctx)
         if (i < filled) {
             graphics_context_set_fill_color(ctx, color);
             graphics_fill_rect(ctx, seg, 0, GCornerNone);
+        } else if (has_partial && i == filled) {
+            draw_dim_battery_segment(ctx, seg, color);
         } else {
             graphics_context_set_stroke_color(ctx, BATTERY_EMPTY_COLOR);
             graphics_context_set_stroke_width(ctx, 1);

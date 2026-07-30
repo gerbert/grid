@@ -134,7 +134,8 @@ If a value is not available, the watchface shows `--`.
 
 The battery bar has ten segments.
 
-Above 10 percent, the segments show the approximate charge in 10-percent steps.
+Above 10 percent, the segments show the charge in 10-percent steps. The
+current incomplete step remains visible with a dim pattern instead of disappearing.
 At 10 percent or below, each segment represents one percent, which makes the
 last part of the battery easier to read.
 
