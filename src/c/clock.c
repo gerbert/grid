@@ -62,18 +62,6 @@ static int battery_filled_segments(int pct)
     return (BATTERY_SEGMENTS * pct) / 100;
 }
 
-static void draw_dim_battery_segment(GContext *ctx, GRect segment, GColor color)
-{
-    graphics_context_set_stroke_color(ctx, color);
-
-    for (int y = segment.origin.y; y < segment.origin.y + segment.size.h; y++) {
-        for (int x = segment.origin.x; x < segment.origin.x + segment.size.w; x++) {
-            if ((x + y) % 2 == 0)
-                graphics_draw_pixel(ctx, GPoint(x, y));
-        }
-    }
-}
-
 static void draw_date(const Clock *self, GContext *ctx)
 {
     GFont font = fonts_get_system_font(TIME_DATE_FONT);
@@ -92,19 +80,35 @@ static void draw_battery_bar(const Clock *self, GContext *ctx)
         self->battery_pct > 10 && self->battery_pct < 100 && (BATTERY_SEGMENTS * self->battery_pct) % 100 != 0;
     GColor color = battery_color_for_pct(self->battery_pct);
 
-    for (int i = 0; i < BATTERY_SEGMENTS; i++) {
-        int   x   = area.origin.x + i * (seg_w + BATTERY_SEGMENT_GAP);
-        GRect seg = GRect(x, area.origin.y, seg_w, area.size.h);
+    graphics_context_set_fill_color(ctx, GColorBlack);
+    graphics_fill_rect(ctx, area, 0, GCornerNone);
+    graphics_context_set_stroke_width(ctx, 1);
 
-        if (i < filled) {
+    for (int i = 0; i < BATTERY_SEGMENTS; i++) {
+        int   x          = area.origin.x + i * (seg_w + BATTERY_SEGMENT_GAP);
+        GRect seg        = GRect(x, area.origin.y, seg_w, area.size.h);
+        bool  is_filled  = i < filled;
+        bool  is_partial = has_partial && i == filled;
+
+        if (is_filled) {
             graphics_context_set_fill_color(ctx, color);
             graphics_fill_rect(ctx, seg, 0, GCornerNone);
-        } else if (has_partial && i == filled) {
-            draw_dim_battery_segment(ctx, seg, color);
-        } else {
-            graphics_context_set_stroke_color(ctx, BATTERY_EMPTY_COLOR);
-            graphics_context_set_stroke_width(ctx, 1);
-            graphics_draw_rect(ctx, seg);
+            continue;
+        }
+
+        graphics_context_set_stroke_color(ctx, BATTERY_EMPTY_COLOR);
+        graphics_draw_rect(ctx, seg);
+
+        if (!is_partial)
+            continue;
+
+        graphics_context_set_stroke_color(ctx, color);
+
+        for (int y = seg.origin.y; y < seg.origin.y + seg.size.h; y++) {
+            for (int px = seg.origin.x; px < seg.origin.x + seg.size.w; px++) {
+                if ((px + y) % 2 == 0)
+                    graphics_draw_pixel(ctx, GPoint(px, y));
+            }
         }
     }
 }
