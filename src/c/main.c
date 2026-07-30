@@ -34,6 +34,10 @@ bool app_mount(App *app)
         goto fail;
 
     app->mounted = true;
+
+    if (app->settings.value.weather.enabled)
+        weather_tick(&app->weather, &app->settings.value, time(NULL));
+
     return true;
 
 fail:
