@@ -4,27 +4,11 @@
  */
 #include "grid.h"
 
-#define SETTINGS_PERSIST_KEY    1
-#define SETTINGS_INBOX_SIZE     256
-#define SETTINGS_OUTBOX_SIZE    256
-#define SETTINGS_LEGACY_VERSION 3
+#define SETTINGS_PERSIST_KEY 1
+#define SETTINGS_INBOX_SIZE  256
+#define SETTINGS_OUTBOX_SIZE 256
 
 static SettingsStore *s_settings_store;
-
-typedef struct {
-    uint8_t enabled;
-    uint8_t provider_id;
-    uint8_t refresh_hrs;
-    uint8_t retry_min;
-} LegacyWeatherSettings;
-
-typedef struct {
-    uint8_t               version;
-    uint8_t               glance_duration_sec;
-    LegacyWeatherSettings weather;
-} LegacySettings;
-
-static bool settings_save(const SettingsStore *self);
 
 static void settings_set_defaults(Settings *settings)
 {
@@ -77,23 +61,6 @@ static bool settings_load(SettingsStore *self)
 
         settings_validate(&stored);
         self->value = stored;
-        return true;
-    }
-
-    if (stored_size == (int)sizeof(LegacySettings)) {
-        LegacySettings stored = {0};
-
-        if (persist_read_data(SETTINGS_PERSIST_KEY, &stored, sizeof(stored)) != (int)sizeof(stored) ||
-            stored.version != SETTINGS_LEGACY_VERSION)
-            return false;
-
-        self->value.glance_duration_sec = stored.glance_duration_sec;
-        self->value.weather.enabled     = stored.weather.enabled;
-        self->value.weather.provider_id = stored.weather.provider_id;
-        self->value.weather.refresh_hrs = stored.weather.refresh_hrs;
-        self->value.weather.retry_min   = stored.weather.retry_min;
-        settings_validate(&self->value);
-        settings_save(self);
         return true;
     }
 
