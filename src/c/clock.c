@@ -102,11 +102,20 @@ static void draw_battery_bar(const Clock *self, GContext *ctx)
         if (!is_partial)
             continue;
 
+        static const uint8_t partial_fill_pattern[2][5] = {
+            {0, 6, 2, 8, 4},
+            {5, 1, 7, 3, 9},
+        };
+        int partial_level = self->battery_pct % 10;
+
         graphics_context_set_stroke_color(ctx, color);
 
         for (int y = seg.origin.y; y < seg.origin.y + seg.size.h; y++) {
             for (int px = seg.origin.x; px < seg.origin.x + seg.size.w; px++) {
-                if ((px + y) % 2 == 0)
+                int row    = (y - seg.origin.y) % 2;
+                int column = (px - seg.origin.x) % 5;
+
+                if (partial_fill_pattern[row][column] < partial_level)
                     graphics_draw_pixel(ctx, GPoint(px, y));
             }
         }
