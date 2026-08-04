@@ -5,15 +5,21 @@
 #include "grid.h"
 
 #ifdef PBL_PLATFORM_EMERY
-#define WEATHER_FONT         FONT_KEY_GOTHIC_18_BOLD
-#define WEATHER_TEXT_COLOR   GColorCyan
-#define WEATHER_ICON_GAP     4
-#define WEATHER_COMBINED_GAP 4
+#define WEATHER_FONT                FONT_KEY_GOTHIC_18_BOLD
+#define WEATHER_TEXT_COLOR          GColorCyan
+#define WEATHER_ICON_GAP            4
+#define WEATHER_COMBINED_GAP        4
+#define WEATHER_STATUS_GAP          4
+#define WEATHER_FRESH_STATUS_WIDTH  11
+#define WEATHER_FRESH_STATUS_HEIGHT 8
 #else
-#define WEATHER_FONT         FONT_KEY_GOTHIC_14_BOLD
-#define WEATHER_TEXT_COLOR   GColorWhite
-#define WEATHER_ICON_GAP     3
-#define WEATHER_COMBINED_GAP 3
+#define WEATHER_FONT                FONT_KEY_GOTHIC_14_BOLD
+#define WEATHER_TEXT_COLOR          GColorWhite
+#define WEATHER_ICON_GAP            3
+#define WEATHER_COMBINED_GAP        3
+#define WEATHER_STATUS_GAP          3
+#define WEATHER_FRESH_STATUS_WIDTH  8
+#define WEATHER_FRESH_STATUS_HEIGHT 6
 #endif
 
 #define WEATHER_CONDITION_FONT         FONT_KEY_GOTHIC_14
@@ -24,6 +30,7 @@
 #define WEATHER_TEXT_MEASURE_WIDTH     240
 #define WEATHER_TEXT_MEASURE_HEIGHT    48
 #define WEATHER_CONDITION_BUFFER_SIZE  24
+#define WEATHER_STALE_STATUS_GLYPH     "\xEF\x80\xBE" // U+F03E: wi-cloud-refresh
 
 typedef struct {
     GFont       temperature_font;
@@ -198,6 +205,8 @@ static int weather_content_width(GSize size, int max_width)
     return width < max_width ? width : max_width;
 }
 
+static int weather_centered_top(GRect bounds, int height) { return bounds.origin.y + (bounds.size.h - height) / 2; }
+
 static void weather_format_temperature(const WeatherSlot *slot, char *buffer, size_t buffer_size)
 {
     snprintf(buffer, buffer_size,
@@ -206,28 +215,94 @@ static void weather_format_temperature(const WeatherSlot *slot, char *buffer, si
              (int)slot->temperature_c);
 }
 
-static void weather_draw_centered_text(const char *text, GFont font, GRect bounds, GContext *ctx)
+static bool weather_status_is_stale(const Weather *self, time_t now)
 {
-    int   max_width = bounds.size.w - 2 * WEATHER_HORIZONTAL_MARGIN;
-    GSize size      = weather_measure_text(text, font, max_width);
-    int   width     = weather_content_width(size, max_width);
-    int   left      = bounds.origin.x + (bounds.size.w - width) / 2;
-    int   top       = bounds.origin.y + (bounds.size.h - size.h) / 2;
+    return self && self->last_update_at != 0 && now > self->last_update_at &&
+           now - self->last_update_at >= (time_t)weather_refresh_hours(self->settings) * SECONDS_PER_HOUR;
+}
+
+static int weather_get_status_width(Weather *self, time_t now, GFont *icon_font, GSize *glyph_size)
+{
+    *icon_font  = NULL;
+    *glyph_size = GSize(0, 0);
+
+    if (!self || self->last_update_at == 0)
+        return 0;
+
+    if (!weather_status_is_stale(self, now))
+        return WEATHER_FRESH_STATUS_WIDTH;
+
+    *icon_font = weather_get_icon_font(self);
+
+    if (!*icon_font)
+        return 0;
+
+    *glyph_size = weather_measure_text(WEATHER_STALE_STATUS_GLYPH, *icon_font, WEATHER_TEXT_MEASURE_WIDTH);
+    return weather_content_width(*glyph_size, WEATHER_TEXT_MEASURE_WIDTH);
+}
+
+static int weather_status_group_width(int status_width)
+{
+    return status_width > 0 ? status_width + WEATHER_STATUS_GAP : 0;
+}
+
+static void weather_draw_status(GFont icon_font, GSize glyph_size, int status_width, int content_right, GRect bounds,
+                                GContext *ctx)
+{
+    if (status_width <= 0)
+        return;
+
+    GRect status_bounds = GRect(content_right + WEATHER_STATUS_GAP, bounds.origin.y, status_width, bounds.size.h);
+
+    if (!icon_font) {
+        int left = status_bounds.origin.x + (status_bounds.size.w - WEATHER_FRESH_STATUS_WIDTH) / 2;
+        int top  = weather_centered_top(status_bounds, WEATHER_FRESH_STATUS_HEIGHT);
+
+        graphics_context_set_stroke_color(ctx, WEATHER_TEXT_COLOR);
+        graphics_context_set_stroke_width(ctx, 2);
+        graphics_draw_line(ctx, GPoint(left, top + WEATHER_FRESH_STATUS_HEIGHT / 2),
+                           GPoint(left + WEATHER_FRESH_STATUS_WIDTH / 3, top + WEATHER_FRESH_STATUS_HEIGHT - 1));
+        graphics_draw_line(ctx, GPoint(left + WEATHER_FRESH_STATUS_WIDTH / 3, top + WEATHER_FRESH_STATUS_HEIGHT - 1),
+                           GPoint(left + WEATHER_FRESH_STATUS_WIDTH - 1, top));
+        return;
+    }
+
+    int top = weather_centered_top(status_bounds, glyph_size.h);
+
+    graphics_context_set_text_color(ctx, WEATHER_TEXT_COLOR);
+    graphics_draw_text(ctx, WEATHER_STALE_STATUS_GLYPH, icon_font,
+                       GRect(status_bounds.origin.x, top, status_bounds.size.w, glyph_size.h),
+                       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+}
+
+static void weather_draw_centered_text(const char *text, GFont font, GRect bounds, int status_width,
+                                       GFont status_icon_font, GSize status_glyph_size, GContext *ctx)
+{
+    int   status_group_width = weather_status_group_width(status_width);
+    int   max_width          = bounds.size.w - 2 * WEATHER_HORIZONTAL_MARGIN - status_group_width;
+    GSize size               = weather_measure_text(text, font, max_width);
+    int   width              = weather_content_width(size, max_width);
+    int   left               = bounds.origin.x + (bounds.size.w - width - status_group_width) / 2;
+    int   top                = weather_centered_top(bounds, size.h);
 
     graphics_context_set_text_color(ctx, WEATHER_TEXT_COLOR);
     graphics_draw_text(ctx, text, font, GRect(left, top, width, size.h), GTextOverflowModeTrailingEllipsis,
                        GTextAlignmentLeft, NULL);
+    weather_draw_status(status_icon_font, status_glyph_size, status_width, left + width, bounds, ctx);
 }
 
-static void weather_draw_temperature(const WeatherSlot *slot, GRect bounds, GContext *ctx)
+static void weather_draw_temperature(const WeatherSlot *slot, GRect bounds, int status_width, GFont status_icon_font,
+                                     GSize status_glyph_size, GContext *ctx)
 {
     char temperature[12];
 
     weather_format_temperature(slot, temperature, sizeof(temperature));
-    weather_draw_centered_text(temperature, fonts_get_system_font(WEATHER_FONT), bounds, ctx);
+    weather_draw_centered_text(temperature, fonts_get_system_font(WEATHER_FONT), bounds, status_width, status_icon_font,
+                               status_glyph_size, ctx);
 }
 
-static void weather_draw_text(const WeatherSlot *slot, GRect bounds, GContext *ctx)
+static void weather_draw_text(const WeatherSlot *slot, GRect bounds, int status_width, GFont status_icon_font,
+                              GSize status_glyph_size, GContext *ctx)
 {
     char value[40];
 
@@ -236,7 +311,8 @@ static void weather_draw_text(const WeatherSlot *slot, GRect bounds, GContext *c
              "C  %s",
              (int)slot->temperature_c, weather_condition_text(slot->condition_id));
 
-    weather_draw_centered_text(value, fonts_get_system_font(WEATHER_FONT), bounds, ctx);
+    weather_draw_centered_text(value, fonts_get_system_font(WEATHER_FONT), bounds, status_width, status_icon_font,
+                               status_glyph_size, ctx);
 }
 
 static bool weather_get_icon_layout(Weather *self, const WeatherSlot *slot, int max_width, WeatherIconLayout *layout)
@@ -265,8 +341,8 @@ static bool weather_get_icon_layout(Weather *self, const WeatherSlot *slot, int 
 
 static void weather_draw_icon_layout(const WeatherIconLayout *layout, int left, GRect bounds, GContext *ctx)
 {
-    int temperature_y = bounds.origin.y + (bounds.size.h - layout->temperature_size.h) / 2;
-    int glyph_y       = bounds.origin.y + (bounds.size.h - layout->glyph_size.h) / 2;
+    int temperature_y = weather_centered_top(bounds, layout->temperature_size.h);
+    int glyph_y       = weather_centered_top(bounds, layout->glyph_size.h);
 
     graphics_context_set_text_color(ctx, WEATHER_TEXT_COLOR);
     graphics_draw_text(ctx, layout->temperature, layout->temperature_font,
@@ -278,19 +354,22 @@ static void weather_draw_icon_layout(const WeatherIconLayout *layout, int left, 
         GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 }
 
-static void weather_draw_icon(Weather *self, const WeatherSlot *slot, GRect bounds, GContext *ctx)
+static void weather_draw_icon(Weather *self, const WeatherSlot *slot, GRect bounds, int status_width,
+                              GFont status_icon_font, GSize status_glyph_size, GContext *ctx)
 {
+    int               status_group_width = weather_status_group_width(status_width);
+    int               max_width          = bounds.size.w - 2 * WEATHER_HORIZONTAL_MARGIN - status_group_width;
     WeatherIconLayout layout;
-    int               max_width = bounds.size.w - 2 * WEATHER_HORIZONTAL_MARGIN;
 
     if (!weather_get_icon_layout(self, slot, max_width, &layout)) {
-        weather_draw_text(slot, bounds, ctx);
+        weather_draw_text(slot, bounds, status_width, status_icon_font, status_glyph_size, ctx);
         return;
     }
 
-    int left = bounds.origin.x + (bounds.size.w - layout.total_width) / 2;
+    int left = bounds.origin.x + (bounds.size.w - layout.total_width - status_group_width) / 2;
 
     weather_draw_icon_layout(&layout, left, bounds, ctx);
+    weather_draw_status(status_icon_font, status_glyph_size, status_width, left + layout.total_width, bounds, ctx);
 }
 
 static int weather_measure_condition_width(const char *text, GFont font)
@@ -366,7 +445,7 @@ static void weather_draw_condition(const WeatherConditionLayout *layout, GFont f
 
     if (layout->line_count == 1) {
         GSize size = weather_measure_text(layout->first, font, layout->width);
-        int   top  = bounds.origin.y + (bounds.size.h - size.h) / 2;
+        int   top  = weather_centered_top(bounds, size.h);
 
         graphics_draw_text(ctx, layout->first, font, GRect(bounds.origin.x, top, bounds.size.w, size.h),
                            GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
@@ -374,7 +453,7 @@ static void weather_draw_condition(const WeatherConditionLayout *layout, GFont f
     }
 
     int total_height = WEATHER_CONDITION_LINE_HEIGHT + WEATHER_CONDITION_LINE_STEP;
-    int top          = bounds.origin.y + (bounds.size.h - total_height) / 2;
+    int top          = weather_centered_top(bounds, total_height);
 
     graphics_draw_text(ctx, layout->first, font,
                        GRect(bounds.origin.x, top, bounds.size.w, WEATHER_CONDITION_LINE_HEIGHT),
@@ -385,21 +464,27 @@ static void weather_draw_condition(const WeatherConditionLayout *layout, GFont f
         GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
 }
 
-static void weather_draw_icon_text(Weather *self, const WeatherSlot *slot, GRect bounds, GContext *ctx)
+static void weather_draw_icon_text(Weather *self, const WeatherSlot *slot, GRect bounds, int status_width,
+                                   GFont status_icon_font, GSize status_glyph_size, GContext *ctx)
 {
+    int                    status_group_width = weather_status_group_width(status_width);
+    int                    max_row_width      = bounds.size.w - 2 * WEATHER_HORIZONTAL_MARGIN - status_group_width;
     WeatherIconLayout      icon_layout;
     WeatherConditionLayout condition_layout;
-    int                    max_row_width = bounds.size.w - 2 * WEATHER_HORIZONTAL_MARGIN;
 
     if (!weather_get_icon_layout(self, slot, max_row_width, &icon_layout)) {
-        weather_draw_text(slot, bounds, ctx);
+        weather_draw_text(slot, bounds, status_width, status_icon_font, status_glyph_size, ctx);
         return;
     }
 
     int condition_max_width = max_row_width - icon_layout.total_width - WEATHER_COMBINED_GAP;
 
     if (condition_max_width <= 0) {
-        weather_draw_icon(self, slot, bounds, ctx);
+        int left = bounds.origin.x + (bounds.size.w - icon_layout.total_width - status_group_width) / 2;
+
+        weather_draw_icon_layout(&icon_layout, left, bounds, ctx);
+        weather_draw_status(status_icon_font, status_glyph_size, status_width, left + icon_layout.total_width, bounds,
+                            ctx);
         return;
     }
 
@@ -409,12 +494,13 @@ static void weather_draw_icon_text(Weather *self, const WeatherSlot *slot, GRect
                              &condition_layout);
 
     int   total_width      = icon_layout.total_width + WEATHER_COMBINED_GAP + condition_layout.width;
-    int   left             = bounds.origin.x + (bounds.size.w - total_width) / 2;
+    int   left             = bounds.origin.x + (bounds.size.w - total_width - status_group_width) / 2;
     GRect condition_bounds = GRect(left + icon_layout.total_width + WEATHER_COMBINED_GAP, bounds.origin.y,
                                    condition_layout.width, bounds.size.h);
 
     weather_draw_icon_layout(&icon_layout, left, bounds, ctx);
     weather_draw_condition(&condition_layout, condition_font, condition_bounds, ctx);
+    weather_draw_status(status_icon_font, status_glyph_size, status_width, left + total_width, bounds, ctx);
 }
 
 static void weather_layer_update_proc(Layer *layer, GContext *ctx)
@@ -424,21 +510,29 @@ static void weather_layer_update_proc(Layer *layer, GContext *ctx)
     if (!self)
         return;
 
-    const WeatherSlot *slot = weather_current_slot(self, time(NULL));
+    time_t             now  = time(NULL);
+    const WeatherSlot *slot = weather_current_slot(self, now);
 
     if (!slot || !slot->valid)
         return;
 
     GRect bounds = layer_get_bounds(layer);
 
+    bounds.origin.y += WEATHER_LAYER_VERTICAL_PADDING;
+    bounds.size.h -= 2 * WEATHER_LAYER_VERTICAL_PADDING;
+
+    GFont status_icon_font  = NULL;
+    GSize status_glyph_size = GSize(0, 0);
+    int   status_width      = weather_get_status_width(self, now, &status_icon_font, &status_glyph_size);
+
     if (self->settings && self->settings->weather.display_mode == WEATHER_DISPLAY_ICON)
-        weather_draw_icon(self, slot, bounds, ctx);
+        weather_draw_icon(self, slot, bounds, status_width, status_icon_font, status_glyph_size, ctx);
     else if (self->settings && self->settings->weather.display_mode == WEATHER_DISPLAY_ICON_TEXT)
-        weather_draw_icon_text(self, slot, bounds, ctx);
+        weather_draw_icon_text(self, slot, bounds, status_width, status_icon_font, status_glyph_size, ctx);
     else if (self->settings && self->settings->weather.display_mode == WEATHER_DISPLAY_TEMPERATURE)
-        weather_draw_temperature(slot, bounds, ctx);
+        weather_draw_temperature(slot, bounds, status_width, status_icon_font, status_glyph_size, ctx);
     else
-        weather_draw_text(slot, bounds, ctx);
+        weather_draw_text(slot, bounds, status_width, status_icon_font, status_glyph_size, ctx);
 }
 
 static void weather_clear(Weather *self)
@@ -531,7 +625,10 @@ static bool weather_apply_forecast(Weather *self, const Settings *settings, cons
         slot->valid         = true;
     }
 
-    weather_finish_update(self, settings, time(NULL));
+    time_t now           = time(NULL);
+    self->last_update_at = now;
+
+    weather_finish_update(self, settings, now);
     weather_refresh_display(self);
     return true;
 }
@@ -550,7 +647,7 @@ bool weather_init(Weather *self, Layer *details, const ScreenGeometry *geometry,
     self->layer = layer_create_with_data(layer_frame, sizeof(Weather *));
 
     if (!self->layer)
-        return false;
+        goto fail;
 
     *(Weather **)layer_get_data(self->layer) = self;
     layer_set_update_proc(self->layer, weather_layer_update_proc);
@@ -558,21 +655,31 @@ bool weather_init(Weather *self, Layer *details, const ScreenGeometry *geometry,
     layer_add_child(details, self->layer);
 
     return true;
+
+fail:
+    weather_deinit(self);
+    return false;
 }
 
 void weather_refresh_display(Weather *self)
 {
-    if (!self || !self->layer)
+    if (!self)
         return;
 
-    if (!self->settings || !self->settings->weather.enabled || !weather_slot_is_valid(self, time(NULL))) {
+    bool   enabled = self->settings && self->settings->weather.enabled;
+    time_t now     = time(NULL);
+
+    if (!self->layer)
+        return;
+
+    if (!enabled || !weather_slot_is_valid(self, now)) {
         weather_release_icon_font(self);
         layer_set_hidden(self->layer, true);
         return;
     }
 
     if (self->settings->weather.display_mode != WEATHER_DISPLAY_ICON &&
-        self->settings->weather.display_mode != WEATHER_DISPLAY_ICON_TEXT)
+        self->settings->weather.display_mode != WEATHER_DISPLAY_ICON_TEXT && !weather_status_is_stale(self, now))
         weather_release_icon_font(self);
 
     layer_set_hidden(self->layer, false);
@@ -599,6 +706,9 @@ void weather_tick(Weather *self, const Settings *settings, time_t now)
 
         return;
     }
+
+    if (self->layer && self->last_update_at != 0)
+        layer_mark_dirty(self->layer);
 
     if (self->next_update_at == 0)
         self->next_update_at = now;

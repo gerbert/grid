@@ -131,6 +131,9 @@ typedef struct {
     // Forecast slots addressed by the Unix hour modulo WEATHER_SLOT_COUNT.
     WeatherSlot slots[WEATHER_SLOT_COUNT];
 
+    // Unix timestamp of the last successfully applied forecast.
+    time_t last_update_at;
+
     // Unix timestamp of the next scheduled weather request.
     time_t next_update_at;
 } Weather;
