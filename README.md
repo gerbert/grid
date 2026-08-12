@@ -89,22 +89,24 @@ Weather is disabled by default. The provider is selected in the settings.
 Open-Meteo is currently available.
 
 When enabled, PebbleKit JS obtains the phone location and asks the selected
-provider for up to twelve forecast points. Provider-specific values, including
-weather codes, are converted on the phone into a normalized sequence containing
-a start time, slot interval, temperature, and condition ID. The complete result
-is sent to the watch as one compact byte array.
+provider for up to twelve hourly forecast points. Provider-specific values,
+including weather codes, are normalized on the phone. The compact payload
+contains the number of forecast entries, the timestamp of the first hourly
+entry, and temperature/condition pairs. Consecutive entries implicitly
+represent one-hour intervals.
 
-The watch does not interpret provider-specific weather codes. It stores one
-normalized forecast in RAM and selects the current slot using the received start
-time, interval, and element count. A matching C enum is used only to select the
-display text, an icon, both, or only the temperature. Each display is centered
-using its measured content width. In the combined mode, a long condition name
-is wrapped into two lines to the right of the temperature and icon. Icon modes
-use selected glyphs from Weather Icons 2.0.12.
-The original TTF is used without modification, while the Pebble resource
-configuration limits conversion to the 16 glyphs required by the watchface.
-The selected glyphs are rasterized at platform-specific sizes for Pebble Time 2
-and Pebble 2 Duo.
+The watch does not interpret provider-specific weather codes. Each received
+forecast entry is mapped directly into one of twelve in-memory slots using its
+Unix hour modulo 12. The current weather is selected using the same mapping for
+the current hour. A matching C enum is used only to select the display text, an
+icon, both, or only the temperature. Each display is centered using its measured
+content width. In the combined mode, a long condition name is wrapped into two
+lines to the right of the temperature and icon. Icon modes use selected glyphs
+from Weather Icons 2.0.12. The original TTF is used without modification, while
+the Pebble resource configuration limits conversion to the 16 condition glyphs
+used by the forecast display plus the `wi-cloud-refresh` status glyph. The
+selected glyphs are rasterized at platform-specific sizes for Pebble Time 2 and
+Pebble 2 Duo.
 
 No weather values are written to persistent watch storage. Restarting the
 watchface clears the forecast until the next successful synchronization.
@@ -112,10 +114,12 @@ watchface clears the forecast until the next successful synchronization.
 After weather is enabled, the existing minute tick is the only watch-side
 scheduler. It starts an update when `next_update_at` is due and immediately moves
 that timestamp forward by the retry interval. This provides unlimited retries
-even when no response is received. A successful update sets the `valid` flag and
-replaces the retry timestamp with the regular update interval. An explicit
-failure clears `valid` and leaves the already scheduled retry unchanged. The
-previous forecast remains available while retries continue.
+even when no response is received. A successful forecast replaces the in-memory
+slots, marks the received slots as valid, records the synchronization time, and
+schedules the next regular update. If an update fails or the received forecast
+cannot be applied, the next attempt is scheduled using the retry interval.
+Existing valid forecast slots are left untouched, so cached weather can remain
+available while retries continue.
 
 The wrist gesture never starts a weather request. The weather layer only reads
 the current normalized in-memory slot.
@@ -229,10 +233,11 @@ SHA-256 digest is:
 ```
 
 The full upstream TTF is about 97 KiB in the source tree. It is not copied whole
-into the installed watch application: `package.json` lists exactly the 16
-private-use Unicode glyphs required by `//GRID`, and the Pebble SDK converts only
-those glyphs into the platform-specific font resource at 24 px for `emery` and
-18 px for `flint`.
+into the installed watch application: `package.json` lists the 16 private-use
+Unicode condition glyphs used by `//GRID`, together with the `wi-cloud-refresh`
+glyph used to indicate stale weather data. The Pebble SDK converts only those
+glyphs into the platform-specific font resource at 24 px for `emery` and 18 px
+for `flint`.
 
 ## License
 
