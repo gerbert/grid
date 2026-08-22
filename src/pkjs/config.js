@@ -21,6 +21,31 @@ module.exports = [
                 min: 3,
                 max: 30,
                 step: 1
+            },
+            {
+                type: 'toggle',
+                messageKey: 'DND_ENABLE',
+                label: 'Do not disturb',
+                description: 'Prevent glance activation during a scheduled time window',
+                defaultValue: false
+            },
+            {
+                type: 'input',
+                messageKey: 'DND_START_TIME',
+                label: 'Start',
+                defaultValue: '22:00',
+                attributes: {
+                    type: 'time'
+                }
+            },
+            {
+                type: 'input',
+                messageKey: 'DND_END_TIME',
+                label: 'End',
+                defaultValue: '07:00',
+                attributes: {
+                    type: 'time'
+                }
             }
         ]
     },

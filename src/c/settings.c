@@ -12,13 +12,16 @@ static SettingsStore *s_settings_store;
 
 static void settings_set_defaults(Settings *settings)
 {
-    settings->version              = GRID_SETTINGS_VERSION;
-    settings->glance_duration_sec  = GRID_GLANCE_DEFAULT_DURATION_SEC;
-    settings->weather.enabled      = GRID_WEATHER_DEFAULT_ENABLED;
-    settings->weather.provider_id  = GRID_WEATHER_DEFAULT_PROVIDER_ID;
-    settings->weather.refresh_hrs  = GRID_WEATHER_DEFAULT_UPDATE_INTERVAL_HOURS;
-    settings->weather.retry_min    = GRID_WEATHER_DEFAULT_RETRY_INTERVAL_MINUTES;
-    settings->weather.display_mode = GRID_WEATHER_DEFAULT_DISPLAY_MODE;
+    settings->version                     = GRID_SETTINGS_VERSION;
+    settings->glance_duration_sec         = GRID_GLANCE_DEFAULT_DURATION_SEC;
+    settings->do_not_disturb.enabled      = GRID_DND_DEFAULT_ENABLED;
+    settings->do_not_disturb.start_minute = GRID_DND_DEFAULT_START_MINUTE;
+    settings->do_not_disturb.end_minute   = GRID_DND_DEFAULT_END_MINUTE;
+    settings->weather.enabled             = GRID_WEATHER_DEFAULT_ENABLED;
+    settings->weather.provider_id         = GRID_WEATHER_DEFAULT_PROVIDER_ID;
+    settings->weather.refresh_hrs         = GRID_WEATHER_DEFAULT_UPDATE_INTERVAL_HOURS;
+    settings->weather.retry_min           = GRID_WEATHER_DEFAULT_RETRY_INTERVAL_MINUTES;
+    settings->weather.display_mode        = GRID_WEATHER_DEFAULT_DISPLAY_MODE;
 }
 
 static void settings_validate(Settings *settings)
@@ -28,6 +31,14 @@ static void settings_validate(Settings *settings)
     if (settings->glance_duration_sec < GRID_GLANCE_MIN_DURATION_SEC ||
         settings->glance_duration_sec > GRID_GLANCE_MAX_DURATION_SEC)
         settings->glance_duration_sec = GRID_GLANCE_DEFAULT_DURATION_SEC;
+
+    settings->do_not_disturb.enabled = settings->do_not_disturb.enabled ? 1 : 0;
+
+    if (settings->do_not_disturb.start_minute >= GRID_MINUTES_PER_DAY)
+        settings->do_not_disturb.start_minute = GRID_DND_DEFAULT_START_MINUTE;
+
+    if (settings->do_not_disturb.end_minute >= GRID_MINUTES_PER_DAY)
+        settings->do_not_disturb.end_minute = GRID_DND_DEFAULT_END_MINUTE;
 
     settings->weather.enabled = settings->weather.enabled ? 1 : 0;
 
@@ -92,6 +103,24 @@ static void inbox_received_handler(DictionaryIterator *iterator, __attribute__((
     if (glance_duration) {
         self->value.glance_duration_sec = (uint8_t)glance_duration->value->int32;
         changed                         = true;
+    }
+
+    Tuple *dnd_enable = dict_find(iterator, MESSAGE_KEY_DND_ENABLE);
+    if (dnd_enable) {
+        self->value.do_not_disturb.enabled = dnd_enable->value->int32 == 1;
+        changed                            = true;
+    }
+
+    Tuple *dnd_start = dict_find(iterator, MESSAGE_KEY_DND_START_TIME);
+    if (dnd_start && (dnd_start->type == TUPLE_INT || dnd_start->type == TUPLE_UINT)) {
+        self->value.do_not_disturb.start_minute = (uint16_t)dnd_start->value->int32;
+        changed                                 = true;
+    }
+
+    Tuple *dnd_end = dict_find(iterator, MESSAGE_KEY_DND_END_TIME);
+    if (dnd_end && (dnd_end->type == TUPLE_INT || dnd_end->type == TUPLE_UINT)) {
+        self->value.do_not_disturb.end_minute = (uint16_t)dnd_end->value->int32;
+        changed                               = true;
     }
 
     Tuple *weather_enable = dict_find(iterator, MESSAGE_KEY_WEATHER_ENABLE);

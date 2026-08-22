@@ -34,7 +34,10 @@
             "WEATHER_REQUEST",
             "WEATHER_FORECAST",
             "WEATHER_UPDATE_FAILED",
-            "WEATHER_DISPLAY_MODE"
+            "WEATHER_DISPLAY_MODE",
+            "DND_ENABLE",
+            "DND_START_TIME",
+            "DND_END_TIME"
         ],
         "projectType": "native",
         "resources": {
@@ -69,6 +72,6 @@
             "watchface": true
         }
     },
-    "version": "2.6.10",
+    "version": "2.6.11",
     "license": "GPL-2.0-only"
 }

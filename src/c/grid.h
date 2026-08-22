@@ -3,11 +3,16 @@
 
 #include <pebble.h>
 
-#define GRID_SETTINGS_VERSION 4
+#define GRID_SETTINGS_VERSION 5
 
 #define GRID_GLANCE_DEFAULT_DURATION_SEC 7
 #define GRID_GLANCE_MIN_DURATION_SEC     3
 #define GRID_GLANCE_MAX_DURATION_SEC     30
+
+#define GRID_DND_DEFAULT_ENABLED      0
+#define GRID_DND_DEFAULT_START_MINUTE (22 * 60)
+#define GRID_DND_DEFAULT_END_MINUTE   (7 * 60)
+#define GRID_MINUTES_PER_DAY          (24 * 60)
 
 #define GRID_WEATHER_DEFAULT_ENABLED                0
 #define GRID_WEATHER_DEFAULT_PROVIDER_ID            0
@@ -53,6 +58,12 @@ typedef enum {
 } WeatherCondition;
 
 typedef struct {
+    uint8_t  enabled;
+    uint16_t start_minute;
+    uint16_t end_minute;
+} DoNotDisturbSettings;
+
+typedef struct {
     uint8_t enabled;
     uint8_t provider_id;
     uint8_t refresh_hrs;
@@ -61,9 +72,10 @@ typedef struct {
 } WeatherSettings;
 
 typedef struct {
-    uint8_t         version;
-    uint8_t         glance_duration_sec;
-    WeatherSettings weather;
+    uint8_t              version;
+    uint8_t              glance_duration_sec;
+    DoNotDisturbSettings do_not_disturb;
+    WeatherSettings      weather;
 } Settings;
 
 typedef struct {

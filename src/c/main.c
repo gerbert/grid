@@ -4,6 +4,29 @@
  */
 #include "grid.h"
 
+static bool do_not_disturb_active(const Settings *settings, time_t now)
+{
+    if (!settings || !settings->do_not_disturb.enabled)
+        return false;
+
+    struct tm *time_info = localtime(&now);
+
+    if (!time_info)
+        return false;
+
+    uint16_t current_minute = (uint16_t)(time_info->tm_hour * 60 + time_info->tm_min);
+    uint16_t start_minute   = settings->do_not_disturb.start_minute;
+    uint16_t end_minute     = settings->do_not_disturb.end_minute;
+
+    if (start_minute == end_minute)
+        return false;
+
+    if (start_minute < end_minute)
+        return current_minute >= start_minute && current_minute < end_minute;
+
+    return current_minute >= start_minute || current_minute < end_minute;
+}
+
 App *app_from_active_window(void)
 {
     Window *window = window_stack_get_top_window();
@@ -62,6 +85,9 @@ void app_unmount(App *app)
 void app_activate_glance(App *app)
 {
     if (!app || !app->mounted)
+        return;
+
+    if (do_not_disturb_active(&app->settings.value, time(NULL)))
         return;
 
     clock_refresh_details(&app->clock);

@@ -14,6 +14,7 @@ sleep time.
 - Clean idle screen with time only
 - Doppler animation triggered by a wrist flick
 - Configurable glance duration from 3 to 30 seconds
+- Optional Do not disturb interval that suppresses glance activation
 - Optional 12-hour weather forecast with a selectable provider
 - Text, icon, combined icon-and-text, or temperature-only weather display
 - Configurable weather update interval from 1 to 6 hours
@@ -82,6 +83,11 @@ ignored. This avoids restarting the animation, extending the glance timer, or
 repeatedly requesting the backlight.
 
 The backlight is enabled only when it is currently off.
+
+When Do not disturb is enabled, new glance activation is suppressed during the
+configured local-time interval. Intervals may cross midnight. The start time is
+inclusive and the end time is exclusive; equal start and end times define an
+empty interval. An already active glance is not interrupted.
 
 ## Weather
 
@@ -160,6 +166,9 @@ The configuration page is built with Rebble Clay.
 Available options:
 
 - `Glance duration`: 3 to 30 seconds, default 7 seconds
+- `Do not disturb`: disabled by default; native time controls are displayed as
+  `DnD: [time] -> [time]`, defaulting to `22:00` through `07:00` (the browser
+  renders each picker according to locale)
 - `Enable weather`: disabled by default
 - `Provider`: Open-Meteo by default
 - `Condition display`: text by default, with optional icon, icon-plus-text,

@@ -1,6 +1,7 @@
 .DS_Store
 .idea
 .lock-waf_darwin_build
+/*.plist
 build
 compile_commands.json
 node_modules
