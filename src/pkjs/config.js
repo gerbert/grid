@@ -1,4 +1,68 @@
 var weatherProviders = require('./providers');
+var alarms = require('./alarms');
+
+var repeatOptions = [
+    { label: 'One shot', value: 0 },
+    { label: 'Every day', value: 1 },
+    { label: 'Weekdays', value: 2 },
+    { label: 'Weekends', value: 3 },
+    { label: 'Selected days', value: 4 }
+];
+
+var alarmItems = [
+    {
+        type: 'heading',
+        defaultValue: '<table width="100%" cellpadding="0" cellspacing="0"><tr><td>Alarms</td><td id="alarm-add-slot" align="right"></td></tr></table>'
+    },
+    {
+        type: 'input',
+        messageKey: 'ALARM_STATE',
+        defaultValue: alarms.defaultState,
+        attributes: {
+            type: 'hidden'
+        }
+    },
+];
+
+for (var alarmIndex = 0; alarmIndex < 5; alarmIndex += 1) {
+    alarmItems.push(
+        {
+            type: 'select',
+            id: 'ALARM_REPEAT_' + alarmIndex,
+            defaultValue: 0,
+            options: repeatOptions
+        },
+        {
+            type: 'input',
+            id: 'ALARM_TIME_' + alarmIndex,
+            defaultValue: '07:00',
+            attributes: {
+                type: 'time',
+                'aria-label': 'Alarm ' + (alarmIndex + 1) + ' time'
+            }
+        },
+        {
+            type: 'button',
+            id: 'ALARM_DELETE_' + alarmIndex,
+            defaultValue: ' - ',
+            primary: true
+        },
+        {
+            type: 'checkboxgroup',
+            id: 'ALARM_DAYS_' + alarmIndex,
+            label: 'Days',
+            defaultValue: [true, true, true, true, true, false, false],
+            options: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        }
+    );
+}
+
+alarmItems.push({
+    type: 'button',
+    id: 'ALARM_ADD_BUTTON',
+    defaultValue: '+',
+    primary: true
+});
 
 module.exports = [
     {
@@ -51,6 +115,10 @@ module.exports = [
     },
     {
         type: 'section',
+        items: alarmItems
+    },
+    {
+        type: 'section',
         items: [
             {
                 type: 'heading',
@@ -76,22 +144,10 @@ module.exports = [
                 label: 'Condition display',
                 defaultValue: 0,
                 options: [
-                    {
-                        label: 'Text',
-                        value: 0
-                    },
-                    {
-                        label: 'Icon',
-                        value: 1
-                    },
-                    {
-                        label: 'Icon + text',
-                        value: 2
-                    },
-                    {
-                        label: 'Temperature only',
-                        value: 3
-                    }
+                    { label: 'Text', value: 0 },
+                    { label: 'Icon', value: 1 },
+                    { label: 'Icon + text', value: 2 },
+                    { label: 'Temperature only', value: 3 }
                 ],
                 group: 'weather-details'
             },

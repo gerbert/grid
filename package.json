@@ -1,77 +1,79 @@
 {
-    "author": "gerbert",
-    "dependencies": {
-        "@rebble/clay": "1.0.8"
-    },
-    "keywords": [
-        "grid",
-        "watchface",
-        "compact",
-        "emery",
-        "health",
-        "tron",
-        "flint",
-        "duo",
-        "time",
-        "simple",
-        "compact"
+  "author": "gerbert",
+  "dependencies": {
+    "@rebble/clay": "1.0.8"
+  },
+  "keywords": [
+    "grid",
+    "watchface",
+    "compact",
+    "emery",
+    "health",
+    "tron",
+    "flint",
+    "duo",
+    "time",
+    "simple",
+    "compact"
+  ],
+  "name": "grid",
+  "pebble": {
+    "capabilities": [
+      "configurable",
+      "health",
+      "location"
     ],
-    "name": "grid",
-    "pebble": {
-        "capabilities": [
-            "configurable",
-            "health",
-            "location"
-        ],
-        "displayName": "//GRID",
-        "enableMultiJS": true,
-        "messageKeys": [
-            "GLANCE_DURATION_SEC",
-            "WEATHER_ENABLE",
-            "WEATHER_PROVIDER_ID",
-            "WEATHER_UPDATE_INTERVAL_HOURS",
-            "WEATHER_RETRY_INTERVAL_MINUTES",
-            "WEATHER_REQUEST",
-            "WEATHER_FORECAST",
-            "WEATHER_UPDATE_FAILED",
-            "WEATHER_DISPLAY_MODE",
-            "DND_ENABLE",
-            "DND_START_TIME",
-            "DND_END_TIME"
-        ],
-        "projectType": "native",
-        "resources": {
-            "media": [
-                {
-                    "type": "font",
-                    "name": "FONT_WEATHER_ICONS_24",
-                    "file": "fonts/weathericons-regular-webfont.ttf",
-                    "characterRegex": "[\\uF07B\\uF00D\\uF00C\\uF002\\uF013-\\uF015\\uF01C\\uF0B5\\uF019\\uF017\\uF01B\\uF076\\uF01A\\uF064\\uF01E\\uF03E]",
-                    "targetPlatforms": [
-                        "emery"
-                    ]
-                },
-                {
-                    "type": "font",
-                    "name": "FONT_WEATHER_ICONS_18",
-                    "file": "fonts/weathericons-regular-webfont.ttf",
-                    "characterRegex": "[\\uF07B\\uF00D\\uF00C\\uF002\\uF013-\\uF015\\uF01C\\uF0B5\\uF019\\uF017\\uF01B\\uF076\\uF01A\\uF064\\uF01E\\uF03E]",
-                    "targetPlatforms": [
-                        "flint"
-                    ]
-                }
-            ]
+    "displayName": "//GRID",
+    "enableMultiJS": true,
+    "messageKeys": [
+      "GLANCE_DURATION_SEC",
+      "WEATHER_ENABLE",
+      "WEATHER_PROVIDER_ID",
+      "WEATHER_UPDATE_INTERVAL_HOURS",
+      "WEATHER_RETRY_INTERVAL_MINUTES",
+      "WEATHER_REQUEST",
+      "WEATHER_FORECAST",
+      "WEATHER_UPDATE_FAILED",
+      "WEATHER_DISPLAY_MODE",
+      "DND_ENABLE",
+      "DND_START_TIME",
+      "DND_END_TIME",
+      "ALARM_STATE",
+      "ALARM_CONFIG"
+    ],
+    "projectType": "native",
+    "resources": {
+      "media": [
+        {
+          "type": "font",
+          "name": "FONT_WEATHER_ICONS_24",
+          "file": "fonts/weathericons-regular-webfont.ttf",
+          "characterRegex": "[\\uF07B\\uF00D\\uF00C\\uF002\\uF013-\\uF015\\uF01C\\uF0B5\\uF019\\uF017\\uF01B\\uF076\\uF01A\\uF064\\uF01E\\uF03E]",
+          "targetPlatforms": [
+            "emery"
+          ]
         },
-        "sdkVersion": "3",
-        "targetPlatforms": [
-            "emery",
+        {
+          "type": "font",
+          "name": "FONT_WEATHER_ICONS_18",
+          "file": "fonts/weathericons-regular-webfont.ttf",
+          "characterRegex": "[\\uF07B\\uF00D\\uF00C\\uF002\\uF013-\\uF015\\uF01C\\uF0B5\\uF019\\uF017\\uF01B\\uF076\\uF01A\\uF064\\uF01E\\uF03E]",
+          "targetPlatforms": [
             "flint"
-        ],
-        "uuid": "161423e4-0785-433d-b24a-bc2d4fd121f2",
-        "watchapp": {
-            "watchface": true
+          ]
         }
+      ]
     },
-    "version": "2.6.11",
-    "license": "GPL-2.0-only"
+    "sdkVersion": "3",
+    "targetPlatforms": [
+      "emery",
+      "flint"
+    ],
+    "uuid": "161423e4-0785-433d-b24a-bc2d4fd121f2",
+    "watchapp": {
+      "watchface": true
+    }
+  },
+  "version": "2.7.0",
+  "license": "GPL-2.0-only"
 }

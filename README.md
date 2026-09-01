@@ -11,10 +11,11 @@ sleep time.
 
 ## Highlights
 
-- Clean idle screen with time only
+- Clean idle screen with time and the next active alarm when configured
 - Doppler animation triggered by a wrist flick
 - Configurable glance duration from 3 to 30 seconds
 - Optional Do not disturb interval that suppresses glance activation
+- Up to 5 persistent one-time or recurring alarms
 - Optional 12-hour weather forecast with a selectable provider
 - Text, icon, combined icon-and-text, or temperature-only weather display
 - Configurable weather update interval from 1 to 6 hours
@@ -69,9 +70,11 @@ the lower grid section.
 
 ### Idle screen
 
-During normal use, only the current time is visible. The watchface wakes once per
-minute to update it and to compare the weather update timestamp with the current
-time.
+During normal use, the current time is visible. When at least one alarm is enabled,
+the nearest active alarm is shown directly below it as `Next alarm HH:MM` (or the
+corresponding 12-hour representation). The watchface wakes once per minute to update
+the time, compare the weather update timestamp, and check whether any configured alarm
+matches the current local minute.
 
 ### Glance screen
 
@@ -88,6 +91,28 @@ When Do not disturb is enabled, new glance activation is suppressed during the
 configured local-time interval. Intervals may cross midnight. The start time is
 inclusive and the end time is exclusive; equal start and end times define an
 empty interval. An already active glance is not interrupted.
+
+## Alarms
+
+Alarms are configured on the phone and stored together with the persistent watchface
+settings. Up to five active alarms can be configured. Alarm vibration uses the
+firmware-provided long pulse and repeats continuously until the alarm is reset.
+
+A one-time alarm uses the next occurrence of the selected local time and is disabled after it fires. Recurring
+alarms can run every day, on weekdays, on weekends, or on any selected combination
+of weekdays. Selecting a single weekday therefore creates a weekly alarm for that
+day.
+
+The watch does not schedule alarms with a timer. The existing minute tick checks
+all configured alarms against the current local minute. If several alarms match at the
+same time, they are queued in configuration order. The first alarm rings immediately;
+after it is stopped, the next pending alarm starts without waiting for another minute
+tick. While an alarm is already ringing, a short-lived AppTimer only repeats the
+firmware long pulse; it has no role in deciding when an alarm fires.
+
+While an alarm is ringing, the normal wrist flick gesture is reserved for stopping it.
+A single accepted flick stops the current alarm. Outside the ringing state, flick behavior
+is unchanged and a single flick activates the normal glance screen. Snooze is not implemented.
 
 ## Weather
 
@@ -110,9 +135,8 @@ content width. In the combined mode, a long condition name is wrapped into two
 lines to the right of the temperature and icon. Icon modes use selected glyphs
 from Weather Icons 2.0.12. The original TTF is used without modification, while
 the Pebble resource configuration limits conversion to the 16 condition glyphs
-used by the forecast display plus the `wi-cloud-refresh` status glyph. The
-selected glyphs are rasterized at platform-specific sizes for Pebble Time 2 and
-Pebble 2 Duo.
+used by the forecast display and the `wi-cloud-refresh` status glyph. The selected
+glyphs are rasterized at platform-specific sizes for Pebble Time 2 and Pebble 2 Duo.
 
 No weather values are written to persistent watch storage. Restarting the
 watchface clears the forecast until the next successful synchronization.
@@ -169,6 +193,10 @@ Available options:
 - `Do not disturb`: disabled by default; native time controls are displayed as
   `DnD: [time] -> [time]`, defaulting to `22:00` through `07:00` (the browser
   renders each picker according to locale)
+  DnD suppresses glance activation only; it never suppresses a ringing alarm or its flick-to-reset handling.
+- `Alarms`: add, edit, and delete up to 5 active alarms in-place
+- A ringing alarm is reset by a single normal wrist flick; this is not configurable
+- Per-alarm schedule: one time, every day, weekdays, weekends, or selected days
 - `Enable weather`: disabled by default
 - `Provider`: Open-Meteo by default
 - `Condition display`: text by default, with optional icon, icon-plus-text,
@@ -184,8 +212,9 @@ handling are implemented in PebbleKit JS.
 The watchface tries to do as little work as possible while idle:
 
 - The time is updated once per minute.
-- The same minute tick performs one timestamp comparison for weather.
-- No additional weather timer is created.
+- The same minute tick performs the weather timestamp comparison and alarm matching.
+- No additional weather or alarm scheduling timer is created; a runtime timer
+  exists only while an alarm is already ringing to repeat the system long pulse.
 - Weather requests occur only when enabled and due.
 - Twelve forecast slots allow the displayed value to advance without another
   phone request.
@@ -193,7 +222,7 @@ The watchface tries to do as little work as possible while idle:
 - Health values are updated through HealthService events.
 - Hidden health layers are not redrawn after every health event.
 - Doppler timers exist only while the animation or glance is active.
-- Repeated flicks are ignored until the current glance finishes.
+- Repeated flicks are ignored until the current glance finishes, except while an alarm is ringing.
 - The backlight is requested only when it is off.
 - PebbleKit JS has no polling or background interval timer.
 
@@ -244,9 +273,8 @@ SHA-256 digest is:
 The full upstream TTF is about 97 KiB in the source tree. It is not copied whole
 into the installed watch application: `package.json` lists the 16 private-use
 Unicode condition glyphs used by `//GRID`, together with the `wi-cloud-refresh`
-glyph used to indicate stale weather data. The Pebble SDK converts only those
-glyphs into the platform-specific font resource at 24 px for `emery` and 18 px
-for `flint`.
+glyph used to indicate stale weather data. The Pebble SDK converts only those glyphs
+into the platform-specific font resource at 24 px for `emery` and 18 px for `flint`.
 
 ## License
 

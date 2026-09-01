@@ -3,7 +3,7 @@
 
 #include <pebble.h>
 
-#define GRID_SETTINGS_VERSION 5
+#define GRID_SETTINGS_VERSION 8
 
 #define GRID_GLANCE_DEFAULT_DURATION_SEC 7
 #define GRID_GLANCE_MIN_DURATION_SEC     3
@@ -27,6 +27,14 @@
 #define WEATHER_SLOT_COUNT           12
 #define WEATHER_FORECAST_HEADER_SIZE 5
 #define WEATHER_FORECAST_SLOT_SIZE   2
+
+#define GRID_ALARM_MAX_COUNT     5
+#define GRID_ALARM_ALL_DAYS_MASK 0x7F
+#define GRID_ALARM_MIN_YEAR      1970
+#define GRID_ALARM_MAX_YEAR      2099
+
+#define GRID_ALARM_CONFIG_HEADER_SIZE 1
+#define GRID_ALARM_CONFIG_ITEM_SIZE   10
 
 typedef struct App App;
 
@@ -71,11 +79,33 @@ typedef struct {
     uint8_t display_mode;
 } WeatherSettings;
 
+typedef enum {
+    ALARM_REPEAT_ONCE = 0,
+    ALARM_REPEAT_DAYS = 1,
+} AlarmRepeatMode;
+
 typedef struct {
-    uint8_t              version;
-    uint8_t              glance_duration_sec;
-    DoNotDisturbSettings do_not_disturb;
-    WeatherSettings      weather;
+    uint16_t minute_of_day;
+    uint16_t year;
+    uint8_t  enabled;
+    uint8_t  repeat_mode;
+    uint8_t  days_mask;
+    uint8_t  reserved;
+    uint8_t  month;
+    uint8_t  day;
+} AlarmSettings;
+
+typedef struct {
+    uint8_t       count;
+    AlarmSettings items[GRID_ALARM_MAX_COUNT];
+} AlarmCollectionSettings;
+
+typedef struct {
+    uint8_t                 version;
+    uint8_t                 glance_duration_sec;
+    DoNotDisturbSettings    do_not_disturb;
+    WeatherSettings         weather;
+    AlarmCollectionSettings alarms;
 } Settings;
 
 typedef struct {
@@ -151,6 +181,20 @@ typedef struct {
 } Weather;
 
 typedef struct {
+    Layer         *layer;
+    Layer         *details_layer;
+    SettingsStore *settings_store;
+    uint16_t       pending_mask;
+    uint16_t       active_minute;
+    uint16_t       display_minute;
+    uint32_t       last_vibe_ms;
+    AppTimer      *vibe_timer;
+    time_t         last_checked_minute;
+    bool           display_valid;
+    bool           ringing;
+} Alarm;
+
+typedef struct {
     Layer    *layer;
     Layer    *target_layer;
     AppTimer *frame_timer;
@@ -165,11 +209,13 @@ struct App {
     Clock         clock;
     Health        health;
     Weather       weather;
+    Alarm         alarm;
     Doppler       doppler;
     bool          mounted;
 };
 
 bool settings_init(SettingsStore *settings, App *app);
+bool settings_commit(SettingsStore *settings, const Settings *updated);
 void settings_deinit(SettingsStore *settings);
 
 bool screen_init(Screen *screen, App *app);
@@ -190,6 +236,14 @@ void weather_schedule_refresh(Weather *weather);
 void weather_tick(Weather *weather, const Settings *settings, time_t now);
 void weather_handle_message(Weather *weather, const Settings *settings, DictionaryIterator *iterator);
 void weather_deinit(Weather *weather);
+
+bool alarm_init(Alarm *alarm, Layer *root, Layer *details, SettingsStore *settings_store,
+                const ScreenGeometry *geometry);
+void alarm_settings_changed(Alarm *alarm);
+void alarm_tick(Alarm *alarm, time_t now);
+bool alarm_is_ringing(const Alarm *alarm);
+void alarm_handle_flick(Alarm *alarm, AccelAxisType axis);
+void alarm_deinit(Alarm *alarm);
 
 bool doppler_init(Doppler *doppler, Layer *root, Layer *target, GRect bounds);
 void doppler_start(Doppler *doppler, uint8_t visible_duration_sec);

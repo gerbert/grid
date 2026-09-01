@@ -152,6 +152,11 @@ static void flick_handler(__attribute__((__unused__)) AccelAxisType axis, __attr
     if (!app)
         return;
 
+    if (alarm_is_ringing(&app->alarm)) {
+        alarm_handle_flick(&app->alarm, axis);
+        return;
+    }
+
     if (app->doppler.frame_timer || app->doppler.visible_timer)
         return;
 

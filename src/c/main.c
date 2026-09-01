@@ -53,13 +53,20 @@ bool app_mount(App *app)
     if (!health_init(&app->health, app->screen.details_layer, &app->screen.geometry))
         goto fail;
 
+    if (!alarm_init(&app->alarm, root, app->screen.details_layer, &app->settings, &app->screen.geometry))
+        goto fail;
+
     if (!doppler_init(&app->doppler, root, app->screen.details_layer, layer_get_bounds(root)))
         goto fail;
 
     app->mounted = true;
 
+    time_t now = time(NULL);
+
     if (app->settings.value.weather.enabled)
-        weather_tick(&app->weather, &app->settings.value, time(NULL));
+        weather_tick(&app->weather, &app->settings.value, now);
+
+    alarm_tick(&app->alarm, now);
 
     return true;
 
@@ -77,6 +84,7 @@ void app_unmount(App *app)
     app->mounted = false;
 
     doppler_deinit(&app->doppler);
+    alarm_deinit(&app->alarm);
     health_deinit(&app->health);
     weather_deinit(&app->weather);
     clock_deinit(&app->clock);
