@@ -1,6 +1,6 @@
 /**
  * @file alarm.c
- * @brief Alarm matching, vibration, idle presentation, and flick-to-stop handling.
+ * @brief Alarm matching, Wakeup scheduling, vibration, idle presentation, and flick-to-stop handling.
  */
 #include "grid.h"
 
@@ -14,6 +14,15 @@
 
 #define ALARM_VIBE_REPEAT_MS      1800
 #define ALARM_FLICK_VIBE_GUARD_MS 650
+#define ALARM_WAKEUP_PERSIST_KEY  2
+#define ALARM_WAKEUP_COOKIE       0x47524944 // GRID
+#define ALARM_INVALID_WAKEUP_ID   ((WakeupId) - 1)
+
+typedef struct {
+    time_t   timestamp;
+    uint16_t minute_of_day;
+    bool     valid;
+} AlarmNext;
 
 static uint32_t current_millis(void)
 {
@@ -106,15 +115,17 @@ static bool alarm_matches_now(const AlarmSettings *alarm, const struct tm *curre
            current->tm_mday == alarm->day;
 }
 
-static bool alarm_find_next(const Alarm *self, time_t now, uint16_t *minute_of_day)
+static void alarm_find_next(const Alarm *self, time_t now, AlarmNext *next)
 {
-    if (!self || !self->settings_store)
-        return false;
+    if (!next)
+        return;
 
-    const AlarmCollectionSettings *alarms         = &self->settings_store->value.alarms;
-    bool                           found          = false;
-    time_t                         nearest        = 0;
-    uint16_t                       nearest_minute = 0;
+    *next = (AlarmNext){0};
+
+    if (!self || !self->settings_store)
+        return;
+
+    const AlarmCollectionSettings *alarms = &self->settings_store->value.alarms;
 
     for (uint8_t i = 0; i < alarms->count; i++) {
         const AlarmSettings *alarm = &alarms->items[i];
@@ -128,21 +139,16 @@ static bool alarm_find_next(const Alarm *self, time_t now, uint16_t *minute_of_d
 
         if (!valid || candidate < now)
             continue;
-        if (found && candidate >= nearest)
+        if (next->valid && candidate >= next->timestamp)
             continue;
 
-        found          = true;
-        nearest        = candidate;
-        nearest_minute = alarm->minute_of_day;
+        next->valid         = true;
+        next->timestamp     = candidate;
+        next->minute_of_day = alarm->minute_of_day;
     }
-
-    if (found && minute_of_day)
-        *minute_of_day = nearest_minute;
-
-    return found;
 }
 
-static void alarm_refresh_display(Alarm *self)
+static void alarm_refresh_display(Alarm *self, const AlarmNext *next)
 {
     if (!self || !self->layer)
         return;
@@ -150,8 +156,19 @@ static void alarm_refresh_display(Alarm *self)
     if (self->ringing) {
         self->display_valid  = true;
         self->display_minute = self->active_minute;
+    } else if (next) {
+        self->display_valid = next->valid;
+
+        if (next->valid)
+            self->display_minute = next->minute_of_day;
     } else {
-        self->display_valid = alarm_find_next(self, time(NULL), &self->display_minute);
+        AlarmNext current_next;
+
+        alarm_find_next(self, time(NULL) + 1, &current_next);
+        self->display_valid = current_next.valid;
+
+        if (current_next.valid)
+            self->display_minute = current_next.minute_of_day;
     }
 
     layer_mark_dirty(self->layer);
@@ -265,7 +282,7 @@ static bool alarm_start_next(Alarm *self)
         self->ringing       = true;
 
         alarm_vibe_pulse(self);
-        alarm_refresh_display(self);
+        alarm_refresh_display(self, NULL);
         return true;
     }
 
@@ -281,44 +298,111 @@ static void alarm_stop_current(Alarm *self)
     self->ringing = false;
 
     if (!alarm_start_next(self))
-        alarm_refresh_display(self);
+        alarm_refresh_display(self, NULL);
 }
 
-bool alarm_init(Alarm *self, Layer *root, Layer *details, SettingsStore *settings_store, const ScreenGeometry *geometry)
-{
-    if (!self || !root || !details || !settings_store || !geometry)
-        return false;
-
-    self->settings_store      = settings_store;
-    self->details_layer       = details;
-    self->last_checked_minute = (time_t)-1;
-    self->layer               = layer_create_with_data(geometry->weather, sizeof(Alarm *));
-
-    if (!self->layer)
-        goto fail;
-
-    *(Alarm **)layer_get_data(self->layer) = self;
-    layer_set_update_proc(self->layer, alarm_layer_update_proc);
-    layer_add_child(root, self->layer);
-    alarm_refresh_display(self);
-    return true;
-
-fail:
-    alarm_deinit(self);
-    return false;
-}
-
-void alarm_settings_changed(Alarm *self)
+static void alarm_forget_wakeup(Alarm *self)
 {
     if (!self)
         return;
 
-    // Pending bits refer to indices in the previous configuration. A ringing alarm has copied what it needs.
-    self->pending_mask = 0;
-    alarm_refresh_display(self);
+    self->wakeup_id = ALARM_INVALID_WAKEUP_ID;
 }
 
-void alarm_tick(Alarm *self, time_t now)
+static void alarm_clear_persisted_wakeup(void)
+{
+    if (persist_exists(ALARM_WAKEUP_PERSIST_KEY))
+        persist_delete(ALARM_WAKEUP_PERSIST_KEY);
+}
+
+static void alarm_restore_wakeup(Alarm *self)
+{
+    if (!self)
+        return;
+
+    alarm_forget_wakeup(self);
+
+    if (!persist_exists(ALARM_WAKEUP_PERSIST_KEY))
+        return;
+
+    WakeupId wakeup_id = (WakeupId)persist_read_int(ALARM_WAKEUP_PERSIST_KEY);
+
+    if (wakeup_id < 0) {
+        alarm_clear_persisted_wakeup();
+        return;
+    }
+
+    self->wakeup_id = wakeup_id;
+}
+
+static void alarm_cancel_wakeup(Alarm *self)
+{
+    if (!self)
+        return;
+
+    if (self->wakeup_id >= 0)
+        wakeup_cancel(self->wakeup_id);
+
+    alarm_forget_wakeup(self);
+    alarm_clear_persisted_wakeup();
+}
+
+static void alarm_schedule_next_wakeup(Alarm *self, const AlarmNext *next)
+{
+    if (!self || !self->settings_store || !next)
+        return;
+
+    if (self->wakeup_id >= 0) {
+        time_t scheduled_timestamp = 0;
+
+        if (!wakeup_query(self->wakeup_id, &scheduled_timestamp)) {
+            alarm_forget_wakeup(self);
+        } else {
+            if (next->valid && scheduled_timestamp == next->timestamp)
+                return;
+
+            alarm_cancel_wakeup(self);
+        }
+    }
+
+    if (!next->valid) {
+        alarm_clear_persisted_wakeup();
+        return;
+    }
+
+    // Preserve the existing alarm semantics: a watch powered on after the alarm
+    // time must not produce a late notification for a missed event.
+    WakeupId wakeup_id = wakeup_schedule(next->timestamp, ALARM_WAKEUP_COOKIE, false);
+
+    if (wakeup_id < 0) {
+        alarm_clear_persisted_wakeup();
+        APP_LOG(APP_LOG_LEVEL_WARNING, "Alarm wakeup schedule failed: %ld", (long)wakeup_id);
+        return;
+    }
+
+    self->wakeup_id = wakeup_id;
+
+    status_t persist_result = persist_write_int(ALARM_WAKEUP_PERSIST_KEY, wakeup_id);
+
+    if (persist_result < 0)
+        APP_LOG(APP_LOG_LEVEL_WARNING, "Alarm wakeup id persist failed: %ld", (long)persist_result);
+}
+
+static void alarm_reconcile_schedule(Alarm *self, time_t now)
+{
+    if (!self || !self->settings_store)
+        return;
+
+    AlarmNext next;
+
+    alarm_find_next(self, now + 1, &next);
+    alarm_schedule_next_wakeup(self, &next);
+
+    if (!self->ringing)
+        alarm_refresh_display(self, &next);
+}
+
+static void alarm_process_due(Alarm *self, time_t now)
 {
     if (!self || !self->settings_store)
         return;
@@ -328,12 +412,12 @@ void alarm_tick(Alarm *self, time_t now)
     if (self->last_checked_minute == epoch_minute)
         return;
 
-    self->last_checked_minute = epoch_minute;
-
     struct tm *current = localtime(&now);
 
     if (!current)
         return;
+
+    self->last_checked_minute = epoch_minute;
 
     Settings updated          = self->settings_store->value;
     time_t   minute_start     = now - current->tm_sec;
@@ -366,11 +450,97 @@ void alarm_tick(Alarm *self, time_t now)
         }
     }
 
-    if (settings_changed)
-        settings_commit(self->settings_store, &updated);
-
+    // User-visible reaction comes first. alarm_start_next() reads the old settings
+    // value, so a one-time alarm can copy its active state before it is disabled.
     alarm_start_next(self);
-    alarm_refresh_display(self);
+
+    if (settings_changed && !settings_commit(self->settings_store, &updated))
+        APP_LOG(APP_LOG_LEVEL_WARNING, "Alarm settings persist failed");
+}
+
+static void alarm_handle_wakeup_event(Alarm *self, WakeupId wakeup_id, int32_t cookie, time_t now)
+{
+    if (!self || cookie != ALARM_WAKEUP_COOKIE)
+        return;
+
+    if (self->wakeup_id == wakeup_id)
+        alarm_forget_wakeup(self);
+
+    // Processing happens before replacing the persisted WakeupId so the first
+    // alarm pulse is never delayed by persistent-storage housekeeping.
+    alarm_process_due(self, now);
+    alarm_reconcile_schedule(self, now);
+}
+
+static void alarm_wakeup_handler(WakeupId wakeup_id, int32_t cookie)
+{
+    App *app = app_from_active_window();
+
+    if (!app || !app->mounted)
+        return;
+
+    alarm_handle_wakeup_event(&app->alarm, wakeup_id, cookie, time(NULL));
+}
+
+bool alarm_init(Alarm *self, Layer *root, Layer *details, SettingsStore *settings_store, const ScreenGeometry *geometry)
+{
+    if (!self || !root || !details || !settings_store || !geometry)
+        return false;
+
+    self->settings_store      = settings_store;
+    self->details_layer       = details;
+    self->last_checked_minute = (time_t)-1;
+    self->wakeup_id           = ALARM_INVALID_WAKEUP_ID;
+    self->layer               = layer_create_with_data(geometry->weather, sizeof(Alarm *));
+
+    if (!self->layer)
+        goto fail;
+
+    *(Alarm **)layer_get_data(self->layer) = self;
+    layer_set_update_proc(self->layer, alarm_layer_update_proc);
+    layer_add_child(root, self->layer);
+
+    alarm_restore_wakeup(self);
+    wakeup_service_subscribe(alarm_wakeup_handler);
+    return true;
+
+fail:
+    alarm_deinit(self);
+    return false;
+}
+
+bool alarm_handle_launch(Alarm *self, time_t now)
+{
+    if (!self || launch_reason() != APP_LAUNCH_WAKEUP)
+        return false;
+
+    WakeupId wakeup_id = ALARM_INVALID_WAKEUP_ID;
+    int32_t  cookie    = 0;
+
+    if (!wakeup_get_launch_event(&wakeup_id, &cookie) || cookie != ALARM_WAKEUP_COOKIE)
+        return false;
+
+    alarm_handle_wakeup_event(self, wakeup_id, cookie, now);
+    return true;
+}
+
+void alarm_settings_changed(Alarm *self)
+{
+    if (!self)
+        return;
+
+    // Pending bits refer to indices in the previous configuration. A ringing alarm has copied what it needs.
+    self->pending_mask = 0;
+    alarm_reconcile_schedule(self, time(NULL));
+}
+
+void alarm_tick(Alarm *self, time_t now)
+{
+    if (!self || !self->settings_store)
+        return;
+
+    alarm_process_due(self, now);
+    alarm_reconcile_schedule(self, now);
 }
 
 bool alarm_is_ringing(const Alarm *self) { return self && self->ringing; }
@@ -410,7 +580,10 @@ void alarm_deinit(Alarm *self)
     self->last_checked_minute = (time_t)-1;
     self->display_valid       = false;
     self->ringing             = false;
+    alarm_forget_wakeup(self);
 
+    // Wakeup has no unsubscribe API. Do not cancel the scheduled system event:
+    // it must survive foreground application shutdown and be able to relaunch //GRID.
     if (layer)
         layer_destroy(layer);
 }

@@ -72,9 +72,9 @@ the lower grid section.
 
 During normal use, the current time is visible. When at least one alarm is enabled,
 the nearest active alarm is shown directly below it as `Next alarm HH:MM` (or the
-corresponding 12-hour representation). The watchface wakes once per minute to update
-the time, compare the weather update timestamp, and check whether any configured alarm
-matches the current local minute.
+corresponding 12-hour representation). Time is updated once per minute. The same tick
+performs a cheap alarm reconciliation before weather housekeeping, while the nearest
+active alarm is also scheduled through Pebble Wakeup for an independent trigger.
 
 ### Glance screen
 
@@ -103,12 +103,15 @@ alarms can run every day, on weekdays, on weekends, or on any selected combinati
 of weekdays. Selecting a single weekday therefore creates a weekly alarm for that
 day.
 
-The watch does not schedule alarms with a timer. The existing minute tick checks
-all configured alarms against the current local minute. If several alarms match at the
-same time, they are queued in configuration order. The first alarm rings immediately;
-after it is stopped, the next pending alarm starts without waiting for another minute
-tick. While an alarm is already ringing, a short-lived AppTimer only repeats the
-firmware long pulse; it has no role in deciding when an alarm fires.
+The watch schedules one Pebble Wakeup for the nearest active alarm. When the Wakeup
+arrives, all alarms due in that local minute are queued in configuration order and the
+first firmware long pulse starts immediately. One-time disable state is persisted only
+after that first user-visible reaction, and the next nearest Wakeup is then scheduled.
+The minute tick keeps a cheap reconciliation path for startup, clock/timezone changes,
+and Wakeup scheduling failures. Deduplication by epoch minute prevents a Wakeup and the
+minute tick from triggering the same alarm twice. While an alarm is already ringing, a
+short-lived AppTimer only repeats the firmware long pulse; it has no role in deciding
+when an alarm fires.
 
 While an alarm is ringing, the normal wrist flick gesture is reserved for stopping it.
 A single accepted flick stops the current alarm. Outside the ringing state, flick behavior
@@ -212,9 +215,9 @@ handling are implemented in PebbleKit JS.
 The watchface tries to do as little work as possible while idle:
 
 - The time is updated once per minute.
-- The same minute tick performs the weather timestamp comparison and alarm matching.
-- No additional weather or alarm scheduling timer is created; a runtime timer
-  exists only while an alarm is already ringing to repeat the system long pulse.
+- The minute tick performs alarm reconciliation before the weather timestamp comparison.
+- Only the nearest active alarm has a Pebble Wakeup scheduled; no fast polling is used.
+- A runtime AppTimer exists only while an alarm is already ringing to repeat the system long pulse.
 - Weather requests occur only when enabled and due.
 - Twelve forecast slots allow the displayed value to advance without another
   phone request.

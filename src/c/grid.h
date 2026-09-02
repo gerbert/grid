@@ -190,6 +190,7 @@ typedef struct {
     uint32_t       last_vibe_ms;
     AppTimer      *vibe_timer;
     time_t         last_checked_minute;
+    WakeupId       wakeup_id;
     bool           display_valid;
     bool           ringing;
 } Alarm;
@@ -239,6 +240,7 @@ void weather_deinit(Weather *weather);
 
 bool alarm_init(Alarm *alarm, Layer *root, Layer *details, SettingsStore *settings_store,
                 const ScreenGeometry *geometry);
+bool alarm_handle_launch(Alarm *alarm, time_t now);
 void alarm_settings_changed(Alarm *alarm);
 void alarm_tick(Alarm *alarm, time_t now);
 bool alarm_is_ringing(const Alarm *alarm);

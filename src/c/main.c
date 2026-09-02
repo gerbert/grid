@@ -63,10 +63,11 @@ bool app_mount(App *app)
 
     time_t now = time(NULL);
 
+    if (!alarm_handle_launch(&app->alarm, now))
+        alarm_tick(&app->alarm, now);
+
     if (app->settings.value.weather.enabled)
         weather_tick(&app->weather, &app->settings.value, now);
-
-    alarm_tick(&app->alarm, now);
 
     return true;
 

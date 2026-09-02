@@ -198,8 +198,8 @@ static void tick_handler(struct tm *tick_time, __attribute__((__unused__)) TimeU
     time_t now = time(NULL);
 
     update_time_display(&app->clock, tick_time);
-    weather_tick(&app->weather, &app->settings.value, now);
     alarm_tick(&app->alarm, now);
+    weather_tick(&app->weather, &app->settings.value, now);
 }
 
 bool clock_init(Clock *self, Layer *root, Layer *details, const ScreenGeometry *geometry)
