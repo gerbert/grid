@@ -118,7 +118,7 @@ function onceHasExpired(alarm, now) {
         return true;
     }
 
-    return when.getTime() + 60000 <= now.getTime();
+    return when.getTime() <= now.getTime();
 }
 
 function normalizeAlarm(value, expirePast) {

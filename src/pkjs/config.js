@@ -38,6 +38,7 @@ for (var alarmIndex = 0; alarmIndex < 5; alarmIndex += 1) {
             defaultValue: '07:00',
             attributes: {
                 type: 'time',
+                value: '07:00',
                 'aria-label': 'Alarm ' + (alarmIndex + 1) + ' time'
             }
         },

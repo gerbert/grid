@@ -263,6 +263,37 @@ static void alarm_vibe_stop(Alarm *self)
         vibes_cancel();
 }
 
+static bool alarm_cleanup(Settings *settings)
+{
+    if (!settings)
+        return false;
+
+    AlarmCollectionSettings *alarms  = &settings->alarms;
+    uint8_t                  write   = 0;
+    bool                     changed = false;
+
+    for (uint8_t read = 0; read < alarms->count; read++) {
+        AlarmSettings *alarm = &alarms->items[read];
+
+        if (alarm->repeat_mode == ALARM_REPEAT_ONCE && !alarm->enabled) {
+            changed = true;
+            continue;
+        }
+
+        if (write != read)
+            alarms->items[write] = *alarm;
+
+        write++;
+    }
+
+    if (!changed)
+        return false;
+
+    alarms->count = write;
+    memset(&alarms->items[write], 0, sizeof(alarms->items[0]) * (GRID_ALARM_MAX_COUNT - write));
+    return true;
+}
+
 static bool alarm_start_next(Alarm *self)
 {
     if (!self || !self->settings_store || self->ringing)
@@ -297,8 +328,14 @@ static void alarm_stop_current(Alarm *self)
     alarm_vibe_stop(self);
     self->ringing = false;
 
-    if (!alarm_start_next(self))
+    if (!alarm_start_next(self)) {
+        Settings updated = self->settings_store->value;
+
+        if (alarm_cleanup(&updated) && !settings_commit(self->settings_store, &updated))
+            APP_LOG(APP_LOG_LEVEL_WARNING, "Alarm settings persist failed");
+
         alarm_refresh_display(self, NULL);
+    }
 }
 
 static void alarm_forget_wakeup(Alarm *self)
@@ -450,9 +487,12 @@ static void alarm_process_due(Alarm *self, time_t now)
         }
     }
 
-    // User-visible reaction comes first. alarm_start_next() reads the old settings
-    // value, so a one-time alarm can copy its active state before it is disabled.
+    // User-visible reaction comes first. Pending bits refer to the current alarm
+    // indices, so one-shot entries stay in place until the pending queue drains.
     alarm_start_next(self);
+
+    if (!self->ringing && !self->pending_mask)
+        settings_changed = alarm_cleanup(&updated) || settings_changed;
 
     if (settings_changed && !settings_commit(self->settings_store, &updated))
         APP_LOG(APP_LOG_LEVEL_WARNING, "Alarm settings persist failed");
@@ -491,7 +531,14 @@ bool alarm_init(Alarm *self, Layer *root, Layer *details, SettingsStore *setting
     self->details_layer       = details;
     self->last_checked_minute = (time_t)-1;
     self->wakeup_id           = ALARM_INVALID_WAKEUP_ID;
-    self->layer               = layer_create_with_data(geometry->weather, sizeof(Alarm *));
+
+    // Finish cleanup if the app previously exited while an alarm was ringing.
+    Settings updated = self->settings_store->value;
+
+    if (alarm_cleanup(&updated) && !settings_commit(self->settings_store, &updated))
+        APP_LOG(APP_LOG_LEVEL_WARNING, "Alarm settings persist failed");
+
+    self->layer = layer_create_with_data(geometry->weather, sizeof(Alarm *));
 
     if (!self->layer)
         goto fail;

@@ -658,6 +658,27 @@ function timeMinutesToClay(value) {
         (minute < 10 ? '0' : '') + minute;
 }
 
+function pruneExpiredAlarmSettings() {
+    var settings = {};
+
+    try {
+        settings = JSON.parse(localStorage.getItem('clay-settings')) || {};
+    } catch (error) {
+        console.log('Unable to read Clay settings');
+        return;
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(settings, 'ALARM_STATE')) {
+        return;
+    }
+
+    var alarmState = JSON.stringify(alarms.normalizeState(settings.ALARM_STATE, true));
+
+    if (settings.ALARM_STATE !== alarmState) {
+        clay.setSettings('ALARM_STATE', alarmState);
+    }
+}
+
 function displayModeFromClay(value) {
     var displayMode = value;
 
@@ -773,6 +794,7 @@ function getWeather(providerId) {
 }
 
 Pebble.addEventListener('showConfiguration', function() {
+    pruneExpiredAlarmSettings();
     Pebble.openURL(clay.generateUrl());
 });
 

@@ -98,15 +98,18 @@ Alarms are configured on the phone and stored together with the persistent watch
 settings. Up to five active alarms can be configured. Alarm vibration uses the
 firmware-provided long pulse and repeats continuously until the alarm is reset.
 
-A one-time alarm uses the next occurrence of the selected local time and is disabled after it fires. Recurring
+A one-time alarm uses the next occurrence of the selected local time and is removed after it fires. Expired
+one-time entries are also pruned locally from the phone configuration as soon as their scheduled local
+date and time is reached, before the configuration opens. Recurring
 alarms can run every day, on weekdays, on weekends, or on any selected combination
 of weekdays. Selecting a single weekday therefore creates a weekly alarm for that
 day.
 
 The watch schedules one Pebble Wakeup for the nearest active alarm. When the Wakeup
 arrives, all alarms due in that local minute are queued in configuration order and the
-first firmware long pulse starts immediately. One-time disable state is persisted only
-after that first user-visible reaction, and the next nearest Wakeup is then scheduled.
+first firmware long pulse starts immediately. One-time completion is persisted after
+that first user-visible reaction; finished one-time entries are removed once the due
+queue has drained. The next nearest Wakeup is then scheduled.
 The minute tick keeps a cheap reconciliation path for startup, clock/timezone changes,
 and Wakeup scheduling failures. Deduplication by epoch minute prevents a Wakeup and the
 minute tick from triggering the same alarm twice. While an alarm is already ringing, a
