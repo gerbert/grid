@@ -36,6 +36,7 @@
       "WEATHER_UPDATE_FAILED",
       "WEATHER_DISPLAY_MODE",
       "DND_ENABLE",
+      "DND_LIGHT_ON_FLICK",
       "DND_START_TIME",
       "DND_END_TIME",
       "ALARM_STATE",
@@ -74,6 +75,6 @@
       "watchface": true
     }
   },
-  "version": "2.7.2",
+  "version": "2.7.3",
   "license": "GPL-2.0-only"
 }

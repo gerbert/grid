@@ -9,10 +9,11 @@
 #define GRID_GLANCE_MIN_DURATION_SEC     3
 #define GRID_GLANCE_MAX_DURATION_SEC     30
 
-#define GRID_DND_DEFAULT_ENABLED      0
-#define GRID_DND_DEFAULT_START_MINUTE (22 * 60)
-#define GRID_DND_DEFAULT_END_MINUTE   (7 * 60)
-#define GRID_MINUTES_PER_DAY          (24 * 60)
+#define GRID_DND_DEFAULT_ENABLED        0
+#define GRID_DND_DEFAULT_LIGHT_ON_FLICK 0
+#define GRID_DND_DEFAULT_START_MINUTE   (22 * 60)
+#define GRID_DND_DEFAULT_END_MINUTE     (7 * 60)
+#define GRID_MINUTES_PER_DAY            (24 * 60)
 
 #define GRID_WEATHER_DEFAULT_ENABLED                0
 #define GRID_WEATHER_DEFAULT_PROVIDER_ID            0
@@ -65,10 +66,21 @@ typedef enum {
     WEATHER_CONDITION_COUNT            = 16,
 } WeatherCondition;
 
+// Persisted settings schema 8 stores DnD enabled in this byte. Keep enabled at
+// bit 0 and keep the union one byte wide so the persisted layout remains stable.
+typedef union {
+    struct {
+        uint8_t enabled        : 1;
+        uint8_t light_on_flick : 1;
+        uint8_t reserved       : 6;
+    } bits;
+    uint8_t value;
+} DoNotDisturbFlags;
+
 typedef struct {
-    uint8_t  enabled;
-    uint16_t start_minute;
-    uint16_t end_minute;
+    DoNotDisturbFlags flags;
+    uint16_t          start_minute;
+    uint16_t          end_minute;
 } DoNotDisturbSettings;
 
 typedef struct {
@@ -248,6 +260,7 @@ void alarm_handle_flick(Alarm *alarm, AccelAxisType axis);
 void alarm_deinit(Alarm *alarm);
 
 bool doppler_init(Doppler *doppler, Layer *root, Layer *target, GRect bounds);
+void doppler_request_backlight(void);
 void doppler_start(Doppler *doppler, uint8_t visible_duration_sec);
 void doppler_deinit(Doppler *doppler);
 

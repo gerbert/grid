@@ -95,6 +95,14 @@ module.exports = [
                 defaultValue: false
             },
             {
+                type: 'toggle',
+                messageKey: 'DND_LIGHT_ON_FLICK',
+                label: 'Clock backlight on flick',
+                description: 'During DnD, wrist flick lights the clock without opening the glance',
+                defaultValue: false,
+                group: 'dnd-details'
+            },
+            {
                 type: 'input',
                 messageKey: 'DND_START_TIME',
                 label: 'Start',

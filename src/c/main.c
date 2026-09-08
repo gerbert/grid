@@ -6,7 +6,7 @@
 
 static bool do_not_disturb_active(const Settings *settings, time_t now)
 {
-    if (!settings || !settings->do_not_disturb.enabled)
+    if (!settings || !settings->do_not_disturb.flags.bits.enabled)
         return false;
 
     struct tm *time_info = localtime(&now);
@@ -96,8 +96,12 @@ void app_activate_glance(App *app)
     if (!app || !app->mounted)
         return;
 
-    if (do_not_disturb_active(&app->settings.value, time(NULL)))
+    if (do_not_disturb_active(&app->settings.value, time(NULL))) {
+        if (app->settings.value.do_not_disturb.flags.bits.light_on_flick)
+            doppler_request_backlight();
+
         return;
+    }
 
     clock_refresh_details(&app->clock);
     doppler_start(&app->doppler, app->settings.value.glance_duration_sec);

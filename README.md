@@ -15,6 +15,7 @@ sleep time.
 - Doppler animation triggered by a wrist flick
 - Configurable glance duration from 3 to 30 seconds
 - Optional Do not disturb interval that suppresses glance activation
+- Optional DnD wrist-flick backlight for the idle clock without opening the glance
 - Up to 5 persistent one-time or recurring alarms
 - Optional 12-hour weather forecast with a selectable provider
 - Text, icon, combined icon-and-text, or temperature-only weather display
@@ -90,7 +91,9 @@ The backlight is enabled only when it is currently off.
 When Do not disturb is enabled, new glance activation is suppressed during the
 configured local-time interval. Intervals may cross midnight. The start time is
 inclusive and the end time is exclusive; equal start and end times define an
-empty interval. An already active glance is not interrupted.
+empty interval. An already active glance is not interrupted. Optionally, the
+same wrist flick can still request the backlight while DnD is active; in that
+case the idle clock remains on screen and the Doppler/full glance does not start.
 
 ## Alarms
 
@@ -200,6 +203,8 @@ Available options:
   `DnD: [time] -> [time]`, defaulting to `22:00` through `07:00` (the browser
   renders each picker according to locale)
   DnD suppresses glance activation only; it never suppresses a ringing alarm or its flick-to-reset handling.
+- `Clock backlight on flick`: disabled by default; while DnD is active, a normal wrist
+  flick may turn on the backlight without starting Doppler or showing the full glance
 - `Alarms`: add, edit, and delete up to 5 active alarms in-place
 - A ringing alarm is reset by a single normal wrist flick; this is not configurable
 - Per-alarm schedule: one time, every day, weekdays, weekends, or selected days

@@ -601,6 +601,7 @@ function customClay() {
     clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
         layoutDndTimeRange();
         bindGroupToggle('WEATHER_ENABLE', 'weather-details');
+        bindGroupToggle('DND_ENABLE', 'dnd-details');
         bindDndToggle();
         bindAlarmRows();
     });

@@ -124,6 +124,12 @@ static void doppler_frame_cb(void *context)
     show_target(self);
 }
 
+void doppler_request_backlight(void)
+{
+    if (!light_is_on())
+        light_enable_interaction();
+}
+
 void doppler_start(Doppler *self, uint8_t visible_duration_sec)
 {
     if (!self || !self->layer || !self->target_layer)
@@ -139,8 +145,7 @@ void doppler_start(Doppler *self, uint8_t visible_duration_sec)
     self->frame = 1;
     layer_set_hidden(self->layer, false);
 
-    if (!light_is_on())
-        light_enable_interaction();
+    doppler_request_backlight();
 
     self->frame_timer = app_timer_register(DOPPLER_FRAME_MS, doppler_frame_cb, self);
 }
