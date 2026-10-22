@@ -137,6 +137,111 @@ function normalizeOpenMeteo(responseText) {
     };
 }
 
+function metNorwayCondition(symbolCode) {
+    if (typeof symbolCode !== 'string') {
+        return weatherConditions.UNKNOWN;
+    }
+
+    var symbol = symbolCode.replace(/_(day|night|polartwilight)$/, '');
+
+    if (/andthunder$/.test(symbol)) {
+        return weatherConditions.THUNDERSTORM;
+    }
+
+    switch (symbol) {
+        case 'clearsky': return weatherConditions.CLEAR;
+        case 'fair': return weatherConditions.MOSTLY_CLEAR;
+        case 'partlycloudy': return weatherConditions.PARTLY_CLOUDY;
+        case 'cloudy': return weatherConditions.OVERCAST;
+        case 'fog': return weatherConditions.FOG;
+        case 'lightrain':
+        case 'rain':
+        case 'heavyrain': return weatherConditions.RAIN;
+        case 'lightrainshowers':
+        case 'rainshowers':
+        case 'heavyrainshowers': return weatherConditions.SHOWERS;
+        case 'lightsnow':
+        case 'snow':
+        case 'heavysnow':
+        case 'lightsleet':
+        case 'sleet':
+        case 'heavysleet': return weatherConditions.SNOW;
+        case 'lightsnowshowers':
+        case 'snowshowers':
+        case 'heavysnowshowers':
+        case 'lightsleetshowers':
+        case 'sleetshowers':
+        case 'heavysleetshowers': return weatherConditions.SNOW_SHOWERS;
+    }
+
+    return weatherConditions.UNKNOWN;
+}
+
+function normalizeMetNorway(responseText) {
+    var json;
+
+    try {
+        json = JSON.parse(responseText);
+    } catch (error) {
+        return null;
+    }
+
+    var timeseries = json && json.properties && json.properties.timeseries;
+
+    if (!Array.isArray(timeseries) || timeseries.length === 0) {
+        return null;
+    }
+
+    var currentHour = Math.floor(Date.now() / (SECONDS_PER_HOUR * 1000)) * SECONDS_PER_HOUR;
+    var firstTimestamp = null;
+    var slots = [];
+    var i;
+
+    for (i = 0; i < timeseries.length && slots.length < WEATHER_SLOT_COUNT; i += 1) {
+        var entry = timeseries[i];
+        var timestamp = entry && Date.parse(entry.time) / 1000;
+
+        if (!integerNumber(timestamp) || timestamp < 0 || timestamp > 0xffffffff ||
+            timestamp % SECONDS_PER_HOUR !== 0) {
+            return null;
+        }
+
+        if (timestamp < currentHour) {
+            continue;
+        }
+
+        if (firstTimestamp === null) {
+            firstTimestamp = timestamp;
+        } else if (timestamp !== firstTimestamp + slots.length * SECONDS_PER_HOUR) {
+            break;
+        }
+
+        var data = entry.data;
+        var temperature = encodeTemperature(data && data.instant &&
+            data.instant.details && data.instant.details.air_temperature);
+        var summary = data && data.next_1_hours && data.next_1_hours.summary;
+
+        if (temperature === null || !summary || typeof summary.symbol_code !== 'string') {
+            return null;
+        }
+
+        slots.push({
+            temperature: temperature,
+            condition: metNorwayCondition(summary.symbol_code)
+        });
+    }
+
+    if (slots.length === 0) {
+        return null;
+    }
+
+    return {
+        count: slots.length,
+        startTimestamp: firstTimestamp,
+        slots: slots
+    };
+}
+
 function writeUint32(payload, offset, value) {
     payload[offset] = value & 0xff;
     payload[offset + 1] = (value >>> 8) & 0xff;
@@ -182,6 +287,8 @@ function encode(providerId, responseText) {
 
     if (providerId === weatherProviders.openMeteoId) {
         forecast = normalizeOpenMeteo(responseText);
+    } else if (providerId === weatherProviders.metNorwayId) {
+        forecast = normalizeMetNorway(responseText);
     }
 
     return encodeForecast(forecast);

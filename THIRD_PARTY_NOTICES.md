@@ -22,3 +22,15 @@ resources during the application build.
 
 The SIL Open Font License applies to the Weather Icons font. It does not
 change the license of the remaining `//GRID` source code.
+
+## Weather forecast data
+
+Forecasts are retrieved from the selected provider; no forecast data is bundled.
+
+- [Open-Meteo](https://open-meteo.com/) — [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- [MET Norway](https://www.met.no/) (Norwegian Meteorological Institute) —
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) and
+  [NLOD 2.0](https://data.norge.no/nlod/en/2.0).
+
+See [`licenses/weather-data/NOTICE.md`](licenses/weather-data/NOTICE.md)
+for attribution and API use terms.

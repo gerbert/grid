@@ -148,6 +148,12 @@ module.exports = [
                 group: 'weather-details'
             },
             {
+                type: 'text',
+                id: 'WEATHER_ATTRIBUTION',
+                defaultValue: weatherProviders.getAttribution(weatherProviders.defaultId),
+                group: 'weather-details'
+            },
+            {
                 type: 'select',
                 messageKey: 'WEATHER_DISPLAY_MODE',
                 label: 'Condition display',

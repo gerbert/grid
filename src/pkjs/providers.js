@@ -1,9 +1,19 @@
 var OPEN_METEO_ID = 0;
+var MET_NORWAY_ID = 1;
 
 var PROVIDERS = [
     {
         label: 'Open-Meteo',
+        attribution: 'Data source: <a href="https://open-meteo.com/">Open-Meteo</a><br>' +
+            'Data licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.',
         request: requestOpenMeteo
+    },
+    {
+        label: 'MET Norway',
+        attribution: 'Data source: <a href="https://api.met.no/">MET Norway</a><br>' +
+            'Data licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>; ' +
+            'also <a href="https://data.norge.no/nlod/en/2.0">NLOD 2.0</a>.',
+        request: requestMetNorway
     }
 ];
 
@@ -41,6 +51,10 @@ function requestOpenMeteo(position, slotCount, timeoutMs, callback) {
         '&forecast_hours=' + slotCount +
         '&timeformat=unixtime';
 
+    requestWeather(url, 'Open-Meteo', timeoutMs, callback);
+}
+
+function requestWeather(url, provider, timeoutMs, callback) {
     var completed = false;
     var xhr = new XMLHttpRequest();
 
@@ -55,7 +69,7 @@ function requestOpenMeteo(position, slotCount, timeoutMs, callback) {
 
     xhr.onload = function() {
         if (xhr.status < 200 || xhr.status >= 300) {
-            finish('Open-Meteo HTTP ' + xhr.status);
+            finish(provider + ' HTTP ' + xhr.status);
             return;
         }
 
@@ -63,15 +77,15 @@ function requestOpenMeteo(position, slotCount, timeoutMs, callback) {
     };
 
     xhr.onerror = function() {
-        finish('Open-Meteo network error');
+        finish(provider + ' network error');
     };
 
     xhr.ontimeout = function() {
-        finish('Open-Meteo timeout');
+        finish(provider + ' timeout');
     };
 
     xhr.onabort = function() {
-        finish('Open-Meteo request aborted');
+        finish(provider + ' request aborted');
     };
 
     try {
@@ -79,8 +93,40 @@ function requestOpenMeteo(position, slotCount, timeoutMs, callback) {
         xhr.open('GET', url, true);
         xhr.send();
     } catch (error) {
-        finish('unable to start Open-Meteo request');
+        finish('unable to start ' + provider + ' request');
     }
+}
+
+function metNorwayCoordinate(value) {
+    if (Math.abs(value) < 0.0001) {
+        return '0';
+    }
+
+    var text = String(value);
+    var decimal = text.indexOf('.');
+    return decimal === -1 ? text : text.slice(0, decimal + 5);
+}
+
+function requestMetNorway(position, slotCount, timeoutMs, callback) {
+    if (!position || !position.coords) {
+        callback('location coordinates are missing');
+        return;
+    }
+
+    var latitude = position.coords.latitude;
+    var longitude = position.coords.longitude;
+
+    if (!validCoordinate(latitude, -90, 90) ||
+        !validCoordinate(longitude, -180, 180)) {
+        callback('invalid location coordinates');
+        return;
+    }
+
+    // MET Norway requires coordinates truncated to at most four decimal places.
+    var url = 'https://api.met.no/weatherapi/locationforecast/2.0/compact?' +
+        'lat=' + metNorwayCoordinate(latitude) +
+        '&lon=' + metNorwayCoordinate(longitude);
+    requestWeather(url, 'MET Norway', timeoutMs, callback);
 }
 
 function isValidId(providerId) {
@@ -101,6 +147,10 @@ function getConfigOptions() {
     return options;
 }
 
+function getAttribution(providerId) {
+    return isValidId(providerId) ? PROVIDERS[providerId].attribution : '';
+}
+
 function request(providerId, position, slotCount, timeoutMs, callback) {
     if (!isValidId(providerId)) {
         callback('unsupported weather provider');
@@ -113,7 +163,9 @@ function request(providerId, position, slotCount, timeoutMs, callback) {
 module.exports = {
     defaultId: OPEN_METEO_ID,
     openMeteoId: OPEN_METEO_ID,
+    metNorwayId: MET_NORWAY_ID,
     getConfigOptions: getConfigOptions,
+    getAttribution: getAttribution,
     isValidId: isValidId,
     request: request
 };

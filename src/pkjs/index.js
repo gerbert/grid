@@ -48,6 +48,23 @@ function customClay() {
         });
     }
 
+    function bindWeatherAttribution() {
+        var provider = clayConfig.getItemByMessageKey('WEATHER_PROVIDER_ID');
+        var attribution = clayConfig.getItemById('WEATHER_ATTRIBUTION');
+
+        if (!provider || !attribution) {
+            return;
+        }
+
+        function updateAttribution() {
+            var attributions = clayConfig.meta.userData.weatherAttributions;
+            attribution.set(attributions[provider.get()] || attributions[0]);
+        }
+
+        updateAttribution();
+        provider.on('change', updateAttribution);
+    }
+
     function layoutDndTimeRange() {
         var start = clayConfig.getItemByMessageKey('DND_START_TIME');
         var end = clayConfig.getItemByMessageKey('DND_END_TIME');
@@ -601,13 +618,21 @@ function customClay() {
     clayConfig.on(clayConfig.EVENTS.AFTER_BUILD, function() {
         layoutDndTimeRange();
         bindGroupToggle('WEATHER_ENABLE', 'weather-details');
+        bindWeatherAttribution();
         bindGroupToggle('DND_ENABLE', 'dnd-details');
         bindDndToggle();
         bindAlarmRows();
     });
 }
 
-var clay = new Clay(clayConfig, customClay, { autoHandleEvents: false });
+var clay = new Clay(clayConfig, customClay, {
+    autoHandleEvents: false,
+    userData: {
+        weatherAttributions: weatherProviders.getConfigOptions().map(function(option) {
+            return weatherProviders.getAttribution(option.value);
+        })
+    }
+});
 
 var WEATHER_REQUEST_TIMEOUT_MS = 15000;
 var DND_DEFAULT_START_MINUTE = 22 * 60;

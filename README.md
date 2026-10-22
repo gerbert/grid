@@ -126,7 +126,7 @@ is unchanged and a single flick activates the normal glance screen. Snooze is no
 ## Weather
 
 Weather is disabled by default. The provider is selected in the settings.
-Open-Meteo is currently available.
+Open-Meteo (default) and MET Norway are available.
 
 When enabled, PebbleKit JS obtains the phone location and asks the selected
 provider for up to twelve hourly forecast points. Provider-specific values,
@@ -209,7 +209,7 @@ Available options:
 - A ringing alarm is reset by a single normal wrist flick; this is not configurable
 - Per-alarm schedule: one time, every day, weekdays, weekends, or selected days
 - `Enable weather`: disabled by default
-- `Provider`: Open-Meteo by default
+- `Provider`: Open-Meteo (default) or MET Norway
 - `Condition display`: text by default, with optional icon, icon-plus-text,
   and temperature-only modes
 - `Weather update interval`: 1 to 6 hours, default 3 hours
@@ -288,6 +288,9 @@ glyph used to indicate stale weather data. The Pebble SDK converts only those gl
 into the platform-specific font resource at 24 px for `emery` and 18 px for `flint`.
 
 ## License
+
+The weather services and forecast data have their own terms and attribution
+requirements; see [`licenses/weather-data/NOTICE.md`](licenses/weather-data/NOTICE.md).
 
 Except for the third-party components listed in
 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), `//GRID` is licensed
