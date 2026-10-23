@@ -66,6 +66,24 @@ typedef enum {
     WEATHER_CONDITION_COUNT            = 16,
 } WeatherCondition;
 
+// The weather condition text IDs occupy 0..WEATHER_CONDITION_COUNT - 1.
+typedef enum {
+    GRID_TEXT_NEXT_ALARM = WEATHER_CONDITION_COUNT,
+    GRID_TEXT_SLEEP,
+    GRID_TEXT_STEPS,
+    GRID_TEXT_HEART_RATE,
+    GRID_TEXT_CALORIES,
+    GRID_TEXT_DISTANCE,
+    GRID_TEXT_HOURS,
+    GRID_TEXT_MINUTES,
+    GRID_TEXT_COUNT
+} GridText;
+
+void grid_i18n_init(void);
+const char *grid_i18n(uint8_t text_id);
+const char *grid_i18n_weekday(int weekday);
+const char *grid_i18n_month(int month);
+
 // Persisted settings schema 8 stores DnD enabled in this byte. Keep enabled at
 // bit 0 and keep the union one byte wide so the persisted layout remains stable.
 typedef union {

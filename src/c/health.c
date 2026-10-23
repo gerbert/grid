@@ -2,7 +2,7 @@
  * @file health.c
  * @brief Health and sleep data presentation for //GRID.
  */
-#include "grid.h"
+#include "include/grid.h"
 
 #ifdef PBL_PLATFORM_EMERY
 #define METRIC_LABEL_COLOR     GColorCadetBlue
@@ -130,14 +130,21 @@ static void draw_health_row(const Health *self, GContext *ctx)
     int   cell_width = row.size.w / HEALTH_CELL_COUNT;
 
 #if HAS_HEART_RATE
-    draw_metric_cell(ctx, GRect(0 * cell_width, row.origin.y, cell_width, row.size.h), "STP", steps_buf);
-    draw_metric_cell(ctx, GRect(1 * cell_width, row.origin.y, cell_width, row.size.h), "BPM", hr_buf);
-    draw_metric_cell(ctx, GRect(2 * cell_width, row.origin.y, cell_width, row.size.h), "CAL", kcal_buf);
-    draw_metric_cell(ctx, GRect(3 * cell_width, row.origin.y, cell_width, row.size.h), "KM", dist_buf);
+    draw_metric_cell(ctx, GRect(0 * cell_width, row.origin.y, cell_width, row.size.h),
+                     grid_i18n(GRID_TEXT_STEPS), steps_buf);
+    draw_metric_cell(ctx, GRect(1 * cell_width, row.origin.y, cell_width, row.size.h),
+                     grid_i18n(GRID_TEXT_HEART_RATE), hr_buf);
+    draw_metric_cell(ctx, GRect(2 * cell_width, row.origin.y, cell_width, row.size.h),
+                     grid_i18n(GRID_TEXT_CALORIES), kcal_buf);
+    draw_metric_cell(ctx, GRect(3 * cell_width, row.origin.y, cell_width, row.size.h),
+                     grid_i18n(GRID_TEXT_DISTANCE), dist_buf);
 #else
-    draw_metric_cell(ctx, GRect(0 * cell_width, row.origin.y, cell_width, row.size.h), "STP", steps_buf);
-    draw_metric_cell(ctx, GRect(1 * cell_width, row.origin.y, cell_width, row.size.h), "CAL", kcal_buf);
-    draw_metric_cell(ctx, GRect(2 * cell_width, row.origin.y, cell_width, row.size.h), "KM", dist_buf);
+    draw_metric_cell(ctx, GRect(0 * cell_width, row.origin.y, cell_width, row.size.h),
+                     grid_i18n(GRID_TEXT_STEPS), steps_buf);
+    draw_metric_cell(ctx, GRect(1 * cell_width, row.origin.y, cell_width, row.size.h),
+                     grid_i18n(GRID_TEXT_CALORIES), kcal_buf);
+    draw_metric_cell(ctx, GRect(2 * cell_width, row.origin.y, cell_width, row.size.h),
+                     grid_i18n(GRID_TEXT_DISTANCE), dist_buf);
 #endif
 
     graphics_context_set_stroke_color(ctx, METRIC_SEPARATOR_COLOR);
@@ -157,7 +164,8 @@ static void draw_sleep_row(const Health *self, GContext *ctx)
         int hours         = total_minutes / 60;
         int minutes       = total_minutes % 60;
 
-        snprintf(value_buf, sizeof(value_buf), "%dh %02dm", hours, minutes);
+        snprintf(value_buf, sizeof(value_buf), "%d%s %02d%s", hours, grid_i18n(GRID_TEXT_HOURS), minutes,
+                 grid_i18n(GRID_TEXT_MINUTES));
     } else {
         snprintf(value_buf, sizeof(value_buf), "--");
     }
@@ -167,7 +175,7 @@ static void draw_sleep_row(const Health *self, GContext *ctx)
     GFont font       = fonts_get_system_font(METRIC_VALUE_FONT);
 
     graphics_context_set_text_color(ctx, METRIC_VALUE_COLOR);
-    graphics_draw_text(ctx, "Sleep", font, GRect(row.origin.x, row.origin.y, cell_width, row.size.h),
+    graphics_draw_text(ctx, grid_i18n(GRID_TEXT_SLEEP), font, GRect(row.origin.x, row.origin.y, cell_width, row.size.h),
                        GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
     graphics_draw_text(ctx, value_buf, font,
                        GRect(row.origin.x + cell_width, row.origin.y, row.size.w - cell_width, row.size.h),

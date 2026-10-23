@@ -1,0 +1,53 @@
+#include "../i18n.h"
+
+static const GridLocale s_nl = {
+    .text = {
+        [WEATHER_CONDITION_UNKNOWN] = "WEER",
+        [WEATHER_CONDITION_CLEAR] = "HELDER",
+        [WEATHER_CONDITION_MOSTLY_CLEAR] = "OVERWEGEND HELDER",
+        [WEATHER_CONDITION_PARTLY_CLOUDY] = "LICHT BEWOLKT",
+        [WEATHER_CONDITION_OVERCAST] = "BEWOLKT",
+        [WEATHER_CONDITION_FOG] = "MIST",
+        [WEATHER_CONDITION_DRIZZLE] = "MOTREGEN",
+        [WEATHER_CONDITION_FREEZING_DRIZZLE] = "AANVRIEZENDE MOTREGEN",
+        [WEATHER_CONDITION_RAIN] = "REGEN",
+        [WEATHER_CONDITION_FREEZING_RAIN] = "IJZEL",
+        [WEATHER_CONDITION_SNOW] = "SNEEUW",
+        [WEATHER_CONDITION_SNOW_GRAINS] = "SNEEUWKORRELS",
+        [WEATHER_CONDITION_SHOWERS] = "BUIEN",
+        [WEATHER_CONDITION_SNOW_SHOWERS] = "SNEEUWBUIEN",
+        [WEATHER_CONDITION_THUNDERSTORM] = "ONWEER",
+        [WEATHER_CONDITION_HAIL_STORM] = "HAGELBUI",
+        [GRID_TEXT_NEXT_ALARM] = "Volgende wekker",
+        [GRID_TEXT_SLEEP] = "Slaap",
+        [GRID_TEXT_STEPS] = "STP",
+        [GRID_TEXT_HEART_RATE] = "BPM",
+        [GRID_TEXT_CALORIES] = "CAL",
+        [GRID_TEXT_DISTANCE] = "KM",
+        [GRID_TEXT_HOURS] = "u",
+        [GRID_TEXT_MINUTES] = "m",
+    },
+    .weekday = {
+        [0] = "ZO",
+        [1] = "MA",
+        [2] = "DI",
+        [3] = "WO",
+        [4] = "DO",
+        [5] = "VR",
+        [6] = "ZA",
+    },
+    .month = {
+        [0] = "JAN",
+        [1] = "FEB",
+        [2] = "MRT",
+        [3] = "APR",
+        [4] = "MEI",
+        [5] = "JUN",
+        [6] = "JUL",
+        [7] = "AUG",
+        [8] = "SEP",
+        [9] = "OKT",
+        [10] = "NOV",
+        [11] = "DEC"
+    }
+};

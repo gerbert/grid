@@ -4,8 +4,18 @@ var messageKeys = require('message_keys');
 var weatherProviders = require('./providers');
 var weatherAdapter = require('./adapters');
 var alarms = require('./alarms');
+var translations = require('./i18n');
 function customClay() {
     var clayConfig = this;
+    var languageTag = typeof navigator !== 'undefined' && navigator.language ?
+        navigator.language.toLowerCase().replace(/_/g, '-') : 'en';
+    var language = languageTag.split('-')[0];
+    if (language === 'zh' && /^zh-(tw|hk|mo|hant)(-|$)/.test(languageTag)) {
+        language = 'zh_tw';
+    } else if (language === 'no') {
+        language = 'nb';
+    }
+    var strings = clayConfig.meta.userData.translations[language] || {};
     var dndTimeRow;
     var MAX_ALARMS = 5;
     var REPEAT_ONCE = 0;
@@ -20,6 +30,71 @@ function customClay() {
         1 << 6,
         1 << 0
     ];
+
+    function t(english) {
+        return Object.prototype.hasOwnProperty.call(strings, english) ? strings[english] : english;
+    }
+
+    function translateAttribution(html) {
+        return html.replace('Data source:', t('Data source:'))
+            .replace('Data licensed under', t('Data licensed under'))
+            .replace('also <a', t('also') + ' <a');
+    }
+
+    // Translate Clay's English declarative labels before its components are built.
+    // Values, IDs, message keys and the original alarm layout stay unchanged.
+    clayConfig.on(clayConfig.EVENTS.BEFORE_BUILD, function() {
+        function translateItems(items) {
+            var i;
+            var j;
+            var item;
+
+            for (i = 0; i < items.length; i += 1) {
+                item = items[i];
+                if (item.items) {
+                    translateItems(item.items);
+                }
+                if (typeof item.label === 'string') {
+                    item.label = t(item.label);
+                }
+                if (typeof item.description === 'string') {
+                    item.description = t(item.description);
+                }
+                if (item.type === 'heading' && typeof item.defaultValue === 'string') {
+                    item.defaultValue = t(item.defaultValue).replace('Alarms', t('Alarms'));
+                }
+                if (item.type === 'submit') {
+                    item.defaultValue = t(item.defaultValue);
+                }
+                if (item.type === 'text' && item.id === 'WEATHER_ATTRIBUTION') {
+                    item.defaultValue = translateAttribution(item.defaultValue);
+                }
+                if (item.type === 'select' && item.options) {
+                    for (j = 0; j < item.options.length; j += 1) {
+                        item.options[j].label = t(item.options[j].label);
+                    }
+                }
+                if (item.type === 'checkboxgroup' && item.options) {
+                    for (j = 0; j < item.options.length; j += 1) {
+                        item.options[j] = t(item.options[j]);
+                    }
+                }
+                if (item.attributes && item.attributes['aria-label']) {
+                    item.attributes['aria-label'] = item.attributes['aria-label'].replace(
+                        /^Alarm (\d+) time$/, function(match, number) {
+                            return t('Alarm') + ' ' + number + ' ' + t('time');
+                        }
+                    );
+                }
+            }
+        }
+
+        translateItems(clayConfig.config);
+        var attributions = clayConfig.meta.userData.weatherAttributions;
+        for (var i = 0; i < attributions.length; i += 1) {
+            attributions[i] = translateAttribution(attributions[i]);
+        }
+    });
 
     function updateGroup(group) {
         var items = clayConfig.getItemsByGroup(group);
@@ -114,7 +189,7 @@ function customClay() {
         dndTimeRow.style.whiteSpace = 'nowrap';
 
         dndLabel = document.createElement('span');
-        dndLabel.textContent = 'DnD:';
+        dndLabel.textContent = t('DnD:');
         dndLabel.style.flex = '0 0 auto';
         dndLabel.style.marginRight = '6px';
 
@@ -203,7 +278,7 @@ function customClay() {
         startInput.style.minWidth = '0';
         startInput.style.margin = '0';
         startInput.style.boxSizing = 'border-box';
-        startInput.setAttribute('aria-label', 'Do not disturb start time');
+        startInput.setAttribute('aria-label', t('Do not disturb start time'));
 
         endInput.style.display = 'block';
         endInput.style.width = '100%';
@@ -211,7 +286,7 @@ function customClay() {
         endInput.style.minWidth = '0';
         endInput.style.margin = '0';
         endInput.style.boxSizing = 'border-box';
-        endInput.setAttribute('aria-label', 'Do not disturb end time');
+        endInput.setAttribute('aria-label', t('Do not disturb end time'));
     }
 
     function updateDndTimeRow() {
@@ -630,7 +705,8 @@ var clay = new Clay(clayConfig, customClay, {
     userData: {
         weatherAttributions: weatherProviders.getConfigOptions().map(function(option) {
             return weatherProviders.getAttribution(option.value);
-        })
+        }),
+        translations: translations
     }
 });
 

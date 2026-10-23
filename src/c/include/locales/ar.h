@@ -1,0 +1,53 @@
+#include "../i18n.h"
+
+static const GridLocale s_ar = {
+    .text = {
+        [WEATHER_CONDITION_UNKNOWN] = "الطقس",
+        [WEATHER_CONDITION_CLEAR] = "صحو",
+        [WEATHER_CONDITION_MOSTLY_CLEAR] = "غالبًا صحو",
+        [WEATHER_CONDITION_PARTLY_CLOUDY] = "غائم جزئيًا",
+        [WEATHER_CONDITION_OVERCAST] = "غائم كليًا",
+        [WEATHER_CONDITION_FOG] = "ضباب",
+        [WEATHER_CONDITION_DRIZZLE] = "رذاذ",
+        [WEATHER_CONDITION_FREEZING_DRIZZLE] = "رذاذ متجمد",
+        [WEATHER_CONDITION_RAIN] = "مطر",
+        [WEATHER_CONDITION_FREEZING_RAIN] = "مطر متجمد",
+        [WEATHER_CONDITION_SNOW] = "ثلج",
+        [WEATHER_CONDITION_SNOW_GRAINS] = "حبيبات ثلجية",
+        [WEATHER_CONDITION_SHOWERS] = "زخات مطر",
+        [WEATHER_CONDITION_SNOW_SHOWERS] = "زخات ثلج",
+        [WEATHER_CONDITION_THUNDERSTORM] = "عاصفة رعدية",
+        [WEATHER_CONDITION_HAIL_STORM] = "عاصفة بَرَد",
+        [GRID_TEXT_NEXT_ALARM] = "المنبه التالي",
+        [GRID_TEXT_SLEEP] = "النوم",
+        [GRID_TEXT_STEPS] = "خطوات",
+        [GRID_TEXT_HEART_RATE] = "نبض",
+        [GRID_TEXT_CALORIES] = "سعرات",
+        [GRID_TEXT_DISTANCE] = "كم",
+        [GRID_TEXT_HOURS] = "س",
+        [GRID_TEXT_MINUTES] = "د",
+    },
+    .weekday = {
+        [0] = "أحد",
+        [1] = "إثن",
+        [2] = "ثلا",
+        [3] = "أرب",
+        [4] = "خمي",
+        [5] = "جمع",
+        [6] = "سبت",
+    },
+    .month = {
+        [0] = "ينا",
+        [1] = "فبر",
+        [2] = "مار",
+        [3] = "أبر",
+        [4] = "ماي",
+        [5] = "يون",
+        [6] = "يول",
+        [7] = "أغس",
+        [8] = "سبت",
+        [9] = "أكت",
+        [10] = "نوف",
+        [11] = "ديس"
+    }
+};

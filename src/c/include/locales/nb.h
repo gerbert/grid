@@ -1,0 +1,53 @@
+#include "../i18n.h"
+
+static const GridLocale s_nb = {
+    .text = {
+        [WEATHER_CONDITION_UNKNOWN] = "VÆR",
+        [WEATHER_CONDITION_CLEAR] = "KLART",
+        [WEATHER_CONDITION_MOSTLY_CLEAR] = "STORT SETT KLART",
+        [WEATHER_CONDITION_PARTLY_CLOUDY] = "DELVIS SKYET",
+        [WEATHER_CONDITION_OVERCAST] = "OVERSKYET",
+        [WEATHER_CONDITION_FOG] = "TÅKE",
+        [WEATHER_CONDITION_DRIZZLE] = "YR",
+        [WEATHER_CONDITION_FREEZING_DRIZZLE] = "UNDERKJØLT YR",
+        [WEATHER_CONDITION_RAIN] = "REGN",
+        [WEATHER_CONDITION_FREEZING_RAIN] = "UNDERKJØLT REGN",
+        [WEATHER_CONDITION_SNOW] = "SNØ",
+        [WEATHER_CONDITION_SNOW_GRAINS] = "SNØKORN",
+        [WEATHER_CONDITION_SHOWERS] = "REGNBYGER",
+        [WEATHER_CONDITION_SNOW_SHOWERS] = "SNØBYGER",
+        [WEATHER_CONDITION_THUNDERSTORM] = "TORDENVÆR",
+        [WEATHER_CONDITION_HAIL_STORM] = "HAGLBYGER",
+        [GRID_TEXT_NEXT_ALARM] = "Neste alarm",
+        [GRID_TEXT_SLEEP] = "Søvn",
+        [GRID_TEXT_STEPS] = "SKRITT",
+        [GRID_TEXT_HEART_RATE] = "PULS",
+        [GRID_TEXT_CALORIES] = "KCAL",
+        [GRID_TEXT_DISTANCE] = "KM",
+        [GRID_TEXT_HOURS] = "t",
+        [GRID_TEXT_MINUTES] = "m",
+    },
+    .weekday = {
+        [0] = "SØN",
+        [1] = "MAN",
+        [2] = "TIR",
+        [3] = "ONS",
+        [4] = "TOR",
+        [5] = "FRE",
+        [6] = "LØR",
+    },
+    .month = {
+        [0] = "JAN",
+        [1] = "FEB",
+        [2] = "MAR",
+        [3] = "APR",
+        [4] = "MAI",
+        [5] = "JUN",
+        [6] = "JUL",
+        [7] = "AUG",
+        [8] = "SEP",
+        [9] = "OKT",
+        [10] = "NOV",
+        [11] = "DES"
+    }
+};

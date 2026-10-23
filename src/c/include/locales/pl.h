@@ -1,0 +1,53 @@
+#include "../i18n.h"
+
+static const GridLocale s_pl = {
+    .text = {
+        [WEATHER_CONDITION_UNKNOWN] = "POGODA",
+        [WEATHER_CONDITION_CLEAR] = "BEZCHMURNIE",
+        [WEATHER_CONDITION_MOSTLY_CLEAR] = "PRZEWAŻNIE BEZCHMURNIE",
+        [WEATHER_CONDITION_PARTLY_CLOUDY] = "CZĘŚCIOWE ZACHMURZENIE",
+        [WEATHER_CONDITION_OVERCAST] = "POCHMURNO",
+        [WEATHER_CONDITION_FOG] = "MGŁA",
+        [WEATHER_CONDITION_DRIZZLE] = "MŻAWKA",
+        [WEATHER_CONDITION_FREEZING_DRIZZLE] = "MARZNĄCA MŻAWKA",
+        [WEATHER_CONDITION_RAIN] = "DESZCZ",
+        [WEATHER_CONDITION_FREEZING_RAIN] = "MARZNĄCY DESZCZ",
+        [WEATHER_CONDITION_SNOW] = "ŚNIEG",
+        [WEATHER_CONDITION_SNOW_GRAINS] = "ZIARNA ŚNIEŻNE",
+        [WEATHER_CONDITION_SHOWERS] = "PRZELOTNY DESZCZ",
+        [WEATHER_CONDITION_SNOW_SHOWERS] = "PRZELOTNY ŚNIEG",
+        [WEATHER_CONDITION_THUNDERSTORM] = "BURZA",
+        [WEATHER_CONDITION_HAIL_STORM] = "BURZA Z GRADEM",
+        [GRID_TEXT_NEXT_ALARM] = "Następny alarm",
+        [GRID_TEXT_SLEEP] = "Sen",
+        [GRID_TEXT_STEPS] = "KROKI",
+        [GRID_TEXT_HEART_RATE] = "BPM",
+        [GRID_TEXT_CALORIES] = "KCAL",
+        [GRID_TEXT_DISTANCE] = "KM",
+        [GRID_TEXT_HOURS] = "g",
+        [GRID_TEXT_MINUTES] = "m",
+    },
+    .weekday = {
+        [0] = "ND",
+        [1] = "PN",
+        [2] = "WT",
+        [3] = "ŚR",
+        [4] = "CZ",
+        [5] = "PT",
+        [6] = "SO",
+    },
+    .month = {
+        [0] = "STY",
+        [1] = "LUT",
+        [2] = "MAR",
+        [3] = "KWI",
+        [4] = "MAJ",
+        [5] = "CZE",
+        [6] = "LIP",
+        [7] = "SIE",
+        [8] = "WRZ",
+        [9] = "PAŹ",
+        [10] = "LIS",
+        [11] = "GRU"
+    }
+};

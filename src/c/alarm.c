@@ -2,7 +2,7 @@
  * @file alarm.c
  * @brief Alarm matching, Wakeup scheduling, vibration, idle presentation, and flick-to-stop handling.
  */
-#include "grid.h"
+#include "include/grid.h"
 
 #ifdef PBL_PLATFORM_EMERY
 #define ALARM_FONT  FONT_KEY_GOTHIC_18_BOLD
@@ -206,7 +206,7 @@ static void alarm_layer_update_proc(Layer *layer, GContext *ctx)
     GFont font            = fonts_get_system_font(ALARM_FONT);
 
     format_alarm_time(self->display_minute, time_buf, sizeof(time_buf));
-    snprintf(display_buf, sizeof(display_buf), "Next alarm %s", time_buf);
+    snprintf(display_buf, sizeof(display_buf), "%s %s", grid_i18n(GRID_TEXT_NEXT_ALARM), time_buf);
 
     graphics_context_set_text_color(ctx, ALARM_COLOR);
     graphics_draw_text(ctx, display_buf, font, bounds, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);

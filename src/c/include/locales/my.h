@@ -1,0 +1,53 @@
+#include "../i18n.h"
+
+static const GridLocale s_my = {
+    .text = {
+        [WEATHER_CONDITION_UNKNOWN] = "ရာသီဥတု",
+        [WEATHER_CONDITION_CLEAR] = "ကြည်လင်",
+        [WEATHER_CONDITION_MOSTLY_CLEAR] = "အများအားဖြင့် ကြည်လင်",
+        [WEATHER_CONDITION_PARTLY_CLOUDY] = "တိမ်အနည်းငယ်",
+        [WEATHER_CONDITION_OVERCAST] = "တိမ်ဖုံး",
+        [WEATHER_CONDITION_FOG] = "မြူ",
+        [WEATHER_CONDITION_DRIZZLE] = "မိုးဖွဲ",
+        [WEATHER_CONDITION_FREEZING_DRIZZLE] = "အေးခဲမိုးဖွဲ",
+        [WEATHER_CONDITION_RAIN] = "မိုး",
+        [WEATHER_CONDITION_FREEZING_RAIN] = "အေးခဲမိုး",
+        [WEATHER_CONDITION_SNOW] = "နှင်း",
+        [WEATHER_CONDITION_SNOW_GRAINS] = "နှင်းမှုန်စေ့များ",
+        [WEATHER_CONDITION_SHOWERS] = "မိုးတစ်ပြိုက်",
+        [WEATHER_CONDITION_SNOW_SHOWERS] = "နှင်းတစ်ပြိုက်",
+        [WEATHER_CONDITION_THUNDERSTORM] = "မိုးကြိုးမုန်တိုင်း",
+        [WEATHER_CONDITION_HAIL_STORM] = "မိုးသီးမုန်တိုင်း",
+        [GRID_TEXT_NEXT_ALARM] = "နောက်နှိုးစက်",
+        [GRID_TEXT_SLEEP] = "အိပ်ချိန်",
+        [GRID_TEXT_STEPS] = "ခြေလှမ်း",
+        [GRID_TEXT_HEART_RATE] = "BPM",
+        [GRID_TEXT_CALORIES] = "CAL",
+        [GRID_TEXT_DISTANCE] = "KM",
+        [GRID_TEXT_HOURS] = "န",
+        [GRID_TEXT_MINUTES] = "မ",
+    },
+    .weekday = {
+        [0] = "နွေ",
+        [1] = "လာ",
+        [2] = "ဂါ",
+        [3] = "ဟူး",
+        [4] = "ကြာ",
+        [5] = "သော",
+        [6] = "နေ",
+    },
+    .month = {
+        [0] = "1",
+        [1] = "2",
+        [2] = "3",
+        [3] = "4",
+        [4] = "5",
+        [5] = "6",
+        [6] = "7",
+        [7] = "8",
+        [8] = "9",
+        [9] = "10",
+        [10] = "11",
+        [11] = "12"
+    }
+};

@@ -2,7 +2,7 @@
  * @file settings.c
  * @brief Persistent //GRID settings and Clay/AppMessage integration.
  */
-#include "grid.h"
+#include "include/grid.h"
 
 #define SETTINGS_PERSIST_KEY 1
 #define SETTINGS_INBOX_SIZE  256

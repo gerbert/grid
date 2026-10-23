@@ -2,7 +2,7 @@
  * @file doppler.c
  * @brief Gesture handling, Doppler animation, and temporary details visibility.
  */
-#include "grid.h"
+#include "include/grid.h"
 
 #ifdef PBL_PLATFORM_EMERY
 #define WINDOW_BG_COLOR       GColorBlack

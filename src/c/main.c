@@ -2,7 +2,7 @@
  * @file main.c
  * @brief Application composition and entry point for //GRID.
  */
-#include "grid.h"
+#include "include/grid.h"
 
 static bool do_not_disturb_active(const Settings *settings, time_t now)
 {
@@ -131,6 +131,8 @@ static void app_deinit(App *app)
 int main(void)
 {
     App app = {0};
+
+    grid_i18n_init();
 
     if (!app_init(&app))
         return 1;

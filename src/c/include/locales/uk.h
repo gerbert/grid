@@ -1,0 +1,53 @@
+#include "../i18n.h"
+
+static const GridLocale s_uk = {
+    .text = {
+        [WEATHER_CONDITION_UNKNOWN] = "ПОГОДА",
+        [WEATHER_CONDITION_CLEAR] = "ЯСНО",
+        [WEATHER_CONDITION_MOSTLY_CLEAR] = "ПЕРЕВАЖНО ЯСНО",
+        [WEATHER_CONDITION_PARTLY_CLOUDY] = "МІНЛИВА ХМАРНІСТЬ",
+        [WEATHER_CONDITION_OVERCAST] = "ПОХМУРО",
+        [WEATHER_CONDITION_FOG] = "ТУМАН",
+        [WEATHER_CONDITION_DRIZZLE] = "МРЯКА",
+        [WEATHER_CONDITION_FREEZING_DRIZZLE] = "ПЕРЕОХОЛОДЖЕНА МРЯКА",
+        [WEATHER_CONDITION_RAIN] = "ДОЩ",
+        [WEATHER_CONDITION_FREEZING_RAIN] = "ПЕРЕОХОЛОДЖЕНИЙ ДОЩ",
+        [WEATHER_CONDITION_SNOW] = "СНІГ",
+        [WEATHER_CONDITION_SNOW_GRAINS] = "СНІЖНІ ЗЕРНА",
+        [WEATHER_CONDITION_SHOWERS] = "ЗЛИВА",
+        [WEATHER_CONDITION_SNOW_SHOWERS] = "ЗЛИВОВИЙ СНІГ",
+        [WEATHER_CONDITION_THUNDERSTORM] = "ГРОЗА",
+        [WEATHER_CONDITION_HAIL_STORM] = "ГРАД",
+        [GRID_TEXT_NEXT_ALARM] = "Наст. будильник",
+        [GRID_TEXT_SLEEP] = "Сон",
+        [GRID_TEXT_STEPS] = "КРОКИ",
+        [GRID_TEXT_HEART_RATE] = "ПУЛЬС",
+        [GRID_TEXT_CALORIES] = "КАЛ",
+        [GRID_TEXT_DISTANCE] = "КМ",
+        [GRID_TEXT_HOURS] = "год",
+        [GRID_TEXT_MINUTES] = "хв",
+    },
+    .weekday = {
+        [0] = "НД",
+        [1] = "ПН",
+        [2] = "ВТ",
+        [3] = "СР",
+        [4] = "ЧТ",
+        [5] = "ПТ",
+        [6] = "СБ",
+    },
+    .month = {
+        [0] = "СІЧ",
+        [1] = "ЛЮТ",
+        [2] = "БЕР",
+        [3] = "КВІ",
+        [4] = "ТРА",
+        [5] = "ЧЕР",
+        [6] = "ЛИП",
+        [7] = "СЕР",
+        [8] = "ВЕР",
+        [9] = "ЖОВ",
+        [10] = "ЛИС",
+        [11] = "ГРУ"
+    }
+};

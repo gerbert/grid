@@ -2,7 +2,7 @@
  * @file layout.c
  * @brief Main window, shared screen geometry, and decorative //GRID elements.
  */
-#include "grid.h"
+#include "include/grid.h"
 
 #ifdef PBL_PLATFORM_EMERY
 #define WINDOW_BG_COLOR  GColorBlack

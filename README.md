@@ -218,6 +218,23 @@ Available options:
 The watch stores only the numeric provider index. Provider selection and API
 handling are implemented in PebbleKit JS.
 
+## Languages
+
+//GRID supports 21 languages: English (default), Arabic, Bulgarian, Burmese,
+Catalan, Danish, Dutch, French, German, Hebrew, Italian, Japanese, Norwegian
+(Bokmål), Polish, Portuguese, Russian, Simplified Chinese, Spanish, Swedish,
+Traditional Chinese, and Ukrainian. Clay uses the phone's language and does
+not need a PebbleOS language pack. The watchface uses the language selected on the
+watch; unsupported languages fall back to English.
+
+To display non-English text on the watch, install the corresponding PebbleOS
+language pack using the Pebble mobile app and select that language on the watch.
+English is built in. Language packs provide characters for compatible system
+fonts; the bundled Weather Icons font is for symbols only. Available packs and
+font coverage depend on the watch firmware. For Arabic and Hebrew, right-to-left
+rendering in the watchface should be verified on the device. Restart //GRID after
+changing the watch's language to apply the new locale.
+
 ## Power use
 
 The watchface tries to do as little work as possible while idle:

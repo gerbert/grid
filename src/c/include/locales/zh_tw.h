@@ -1,0 +1,53 @@
+#include "../i18n.h"
+
+static const GridLocale s_zh_tw = {
+    .text = {
+        [WEATHER_CONDITION_UNKNOWN] = "天氣",
+        [WEATHER_CONDITION_CLEAR] = "晴朗",
+        [WEATHER_CONDITION_MOSTLY_CLEAR] = "大致晴朗",
+        [WEATHER_CONDITION_PARTLY_CLOUDY] = "局部多雲",
+        [WEATHER_CONDITION_OVERCAST] = "陰天",
+        [WEATHER_CONDITION_FOG] = "霧",
+        [WEATHER_CONDITION_DRIZZLE] = "毛毛雨",
+        [WEATHER_CONDITION_FREEZING_DRIZZLE] = "凍毛毛雨",
+        [WEATHER_CONDITION_RAIN] = "下雨",
+        [WEATHER_CONDITION_FREEZING_RAIN] = "凍雨",
+        [WEATHER_CONDITION_SNOW] = "下雪",
+        [WEATHER_CONDITION_SNOW_GRAINS] = "雪粒",
+        [WEATHER_CONDITION_SHOWERS] = "陣雨",
+        [WEATHER_CONDITION_SNOW_SHOWERS] = "陣雪",
+        [WEATHER_CONDITION_THUNDERSTORM] = "雷雨",
+        [WEATHER_CONDITION_HAIL_STORM] = "冰雹",
+        [GRID_TEXT_NEXT_ALARM] = "下次鬧鐘",
+        [GRID_TEXT_SLEEP] = "睡眠",
+        [GRID_TEXT_STEPS] = "步數",
+        [GRID_TEXT_HEART_RATE] = "心率",
+        [GRID_TEXT_CALORIES] = "卡路里",
+        [GRID_TEXT_DISTANCE] = "公里",
+        [GRID_TEXT_HOURS] = "時",
+        [GRID_TEXT_MINUTES] = "分",
+    },
+    .weekday = {
+        [0] = "週日",
+        [1] = "週一",
+        [2] = "週二",
+        [3] = "週三",
+        [4] = "週四",
+        [5] = "週五",
+        [6] = "週六",
+    },
+    .month = {
+        [0] = "1月",
+        [1] = "2月",
+        [2] = "3月",
+        [3] = "4月",
+        [4] = "5月",
+        [5] = "6月",
+        [6] = "7月",
+        [7] = "8月",
+        [8] = "9月",
+        [9] = "10月",
+        [10] = "11月",
+        [11] = "12月"
+    }
+};

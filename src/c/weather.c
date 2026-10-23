@@ -2,7 +2,7 @@
  * @file weather.c
  * @brief In-memory weather forecast synchronized through PebbleKit JS.
  */
-#include "grid.h"
+#include "include/grid.h"
 
 #ifdef PBL_PLATFORM_EMERY
 #define WEATHER_FONT                FONT_KEY_GOTHIC_18_BOLD
@@ -29,7 +29,7 @@
 #define WEATHER_CONDITION_LINE_STEP    11
 #define WEATHER_TEXT_MEASURE_WIDTH     240
 #define WEATHER_TEXT_MEASURE_HEIGHT    48
-#define WEATHER_CONDITION_BUFFER_SIZE  24
+#define WEATHER_CONDITION_BUFFER_SIZE  48
 #define WEATHER_STALE_STATUS_GLYPH     "\xEF\x80\xBE" // U+F03E: wi-cloud-refresh
 
 typedef struct {
@@ -75,43 +75,7 @@ static bool weather_condition_is_valid(uint8_t condition_id) { return condition_
 
 static const char *weather_condition_text(uint8_t condition_id)
 {
-    switch ((WeatherCondition)condition_id) {
-    case WEATHER_CONDITION_CLEAR:
-        return "CLEAR";
-    case WEATHER_CONDITION_MOSTLY_CLEAR:
-        return "MOSTLY CLEAR";
-    case WEATHER_CONDITION_PARTLY_CLOUDY:
-        return "PARTLY CLOUDY";
-    case WEATHER_CONDITION_OVERCAST:
-        return "OVERCAST";
-    case WEATHER_CONDITION_FOG:
-        return "FOG";
-    case WEATHER_CONDITION_DRIZZLE:
-        return "DRIZZLE";
-    case WEATHER_CONDITION_FREEZING_DRIZZLE:
-        return "ICY DRIZZLE";
-    case WEATHER_CONDITION_RAIN:
-        return "RAIN";
-    case WEATHER_CONDITION_FREEZING_RAIN:
-        return "FREEZING RAIN";
-    case WEATHER_CONDITION_SNOW:
-        return "SNOW";
-    case WEATHER_CONDITION_SNOW_GRAINS:
-        return "SNOW GRAINS";
-    case WEATHER_CONDITION_SHOWERS:
-        return "SHOWERS";
-    case WEATHER_CONDITION_SNOW_SHOWERS:
-        return "SNOW SHOWERS";
-    case WEATHER_CONDITION_THUNDERSTORM:
-        return "THUNDER STORM";
-    case WEATHER_CONDITION_HAIL_STORM:
-        return "HAIL STORM";
-    case WEATHER_CONDITION_UNKNOWN:
-    case WEATHER_CONDITION_COUNT:
-        return "WEATHER";
-    }
-
-    return "WEATHER";
+    return grid_i18n(condition_id < WEATHER_CONDITION_COUNT ? condition_id : WEATHER_CONDITION_UNKNOWN);
 }
 
 static const char *weather_condition_glyph(uint8_t condition_id)
@@ -304,7 +268,7 @@ static void weather_draw_temperature(const WeatherSlot *slot, GRect bounds, int 
 static void weather_draw_text(const WeatherSlot *slot, GRect bounds, int status_width, GFont status_icon_font,
                               GSize status_glyph_size, GContext *ctx)
 {
-    char value[40];
+    char value[64];
 
     snprintf(value, sizeof(value),
              "%d\xC2\xB0"

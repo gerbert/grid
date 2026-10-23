@@ -2,7 +2,7 @@
  * @file clock.c
  * @brief Time, date, and battery presentation for //GRID.
  */
-#include "grid.h"
+#include "include/grid.h"
 
 #ifdef PBL_PLATFORM_EMERY
 #define TIME_FONT_24H       FONT_KEY_LECO_60_NUMBERS_AM_PM
@@ -168,12 +168,8 @@ void clock_refresh_details(Clock *self)
     struct tm *time_info = localtime(&now);
 
     if (time_info) {
-        strftime(self->date_buf, sizeof(self->date_buf), "[%a %d %b]", time_info);
-
-        for (char *p = self->date_buf; *p; p++) {
-            if (*p >= 'a' && *p <= 'z')
-                *p = (char)(*p - 32);
-        }
+        snprintf(self->date_buf, sizeof(self->date_buf), "[%s %02d %s]",
+                 grid_i18n_weekday(time_info->tm_wday), time_info->tm_mday, grid_i18n_month(time_info->tm_mon));
     }
 
     self->battery_pct = battery_state_service_peek().charge_percent;
