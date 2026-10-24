@@ -18,7 +18,7 @@ static const GridLocale s_my = {
         [WEATHER_CONDITION_SNOW_SHOWERS] = "နှင်းတစ်ပြိုက်",
         [WEATHER_CONDITION_THUNDERSTORM] = "မိုးကြိုးမုန်တိုင်း",
         [WEATHER_CONDITION_HAIL_STORM] = "မိုးသီးမုန်တိုင်း",
-        [GRID_TEXT_SIGNAL] = "သတိပေး",
+        [GRID_TEXT_ALARM] = "နှိုးစက်",
         [GRID_TEXT_SLEEP] = "အိပ်ချိန်",
         [GRID_TEXT_STEPS] = "ခြေလှမ်း",
         [GRID_TEXT_HEART_RATE] = "BPM",
@@ -26,6 +26,7 @@ static const GridLocale s_my = {
         [GRID_TEXT_DISTANCE] = "KM",
         [GRID_TEXT_HOURS] = "န",
         [GRID_TEXT_MINUTES] = "မ",
+        [GRID_TEXT_TIMER] = "အချိန်တိုင်းကိရိယာ",
     },
     .weekday = {
         [0] = "နွေ",

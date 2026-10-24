@@ -18,7 +18,7 @@ static const GridLocale s_uk = {
         [WEATHER_CONDITION_SNOW_SHOWERS] = "ЗЛИВОВИЙ СНІГ",
         [WEATHER_CONDITION_THUNDERSTORM] = "ГРОЗА",
         [WEATHER_CONDITION_HAIL_STORM] = "ГРАД",
-        [GRID_TEXT_SIGNAL] = "Сигнал",
+        [GRID_TEXT_ALARM] = "Будильник",
         [GRID_TEXT_SLEEP] = "Сон",
         [GRID_TEXT_STEPS] = "КРОКИ",
         [GRID_TEXT_HEART_RATE] = "ПУЛЬС",
@@ -26,6 +26,7 @@ static const GridLocale s_uk = {
         [GRID_TEXT_DISTANCE] = "КМ",
         [GRID_TEXT_HOURS] = "год",
         [GRID_TEXT_MINUTES] = "хв",
+        [GRID_TEXT_TIMER] = "Таймер",
     },
     .weekday = {
         [0] = "НД",

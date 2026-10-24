@@ -18,7 +18,7 @@ static const GridLocale s_ja = {
         [WEATHER_CONDITION_SNOW_SHOWERS] = "にわか雪",
         [WEATHER_CONDITION_THUNDERSTORM] = "雷雨",
         [WEATHER_CONDITION_HAIL_STORM] = "ひょう",
-        [GRID_TEXT_SIGNAL] = "通知",
+        [GRID_TEXT_ALARM] = "アラーム",
         [GRID_TEXT_SLEEP] = "睡眠",
         [GRID_TEXT_STEPS] = "歩数",
         [GRID_TEXT_HEART_RATE] = "心拍",
@@ -26,6 +26,7 @@ static const GridLocale s_ja = {
         [GRID_TEXT_DISTANCE] = "KM",
         [GRID_TEXT_HOURS] = "時",
         [GRID_TEXT_MINUTES] = "分",
+        [GRID_TEXT_TIMER] = "タイマー",
     },
     .weekday = {
         [0] = "日",

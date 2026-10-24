@@ -18,7 +18,7 @@ static const GridLocale s_ar = {
         [WEATHER_CONDITION_SNOW_SHOWERS] = "زخات ثلج",
         [WEATHER_CONDITION_THUNDERSTORM] = "عاصفة رعدية",
         [WEATHER_CONDITION_HAIL_STORM] = "عاصفة بَرَد",
-        [GRID_TEXT_SIGNAL] = "تنبيه",
+        [GRID_TEXT_ALARM] = "منبه",
         [GRID_TEXT_SLEEP] = "النوم",
         [GRID_TEXT_STEPS] = "خطوات",
         [GRID_TEXT_HEART_RATE] = "نبض",
@@ -26,6 +26,7 @@ static const GridLocale s_ar = {
         [GRID_TEXT_DISTANCE] = "كم",
         [GRID_TEXT_HOURS] = "س",
         [GRID_TEXT_MINUTES] = "د",
+        [GRID_TEXT_TIMER] = "مؤقت",
     },
     .weekday = {
         [0] = "أحد",

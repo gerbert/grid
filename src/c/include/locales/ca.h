@@ -18,7 +18,7 @@ static const GridLocale s_ca = {
         [WEATHER_CONDITION_SNOW_SHOWERS] = "RUIXATS DE NEU",
         [WEATHER_CONDITION_THUNDERSTORM] = "TEMPESTA",
         [WEATHER_CONDITION_HAIL_STORM] = "CALAMARSA",
-        [GRID_TEXT_SIGNAL] = "Avís",
+        [GRID_TEXT_ALARM] = "Alarma",
         [GRID_TEXT_SLEEP] = "Son",
         [GRID_TEXT_STEPS] = "PAS",
         [GRID_TEXT_HEART_RATE] = "BPM",
@@ -26,6 +26,7 @@ static const GridLocale s_ca = {
         [GRID_TEXT_DISTANCE] = "KM",
         [GRID_TEXT_HOURS] = "h",
         [GRID_TEXT_MINUTES] = "m",
+        [GRID_TEXT_TIMER] = "Temporitzador",
     },
     .weekday = {
         [0] = "DG",

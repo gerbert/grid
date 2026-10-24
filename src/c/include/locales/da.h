@@ -18,7 +18,7 @@ static const GridLocale s_da = {
         [WEATHER_CONDITION_SNOW_SHOWERS] = "SNEBYGER",
         [WEATHER_CONDITION_THUNDERSTORM] = "TORDENVEJR",
         [WEATHER_CONDITION_HAIL_STORM] = "HAGL",
-        [GRID_TEXT_SIGNAL] = "Signal",
+        [GRID_TEXT_ALARM] = "Alarm",
         [GRID_TEXT_SLEEP] = "Søvn",
         [GRID_TEXT_STEPS] = "SKR",
         [GRID_TEXT_HEART_RATE] = "BPM",
@@ -26,6 +26,7 @@ static const GridLocale s_da = {
         [GRID_TEXT_DISTANCE] = "KM",
         [GRID_TEXT_HOURS] = "t",
         [GRID_TEXT_MINUTES] = "m",
+        [GRID_TEXT_TIMER] = "Nedtælling",
     },
     .weekday = {
         [0] = "SØN",

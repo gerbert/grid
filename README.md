@@ -71,11 +71,13 @@ the lower grid section.
 
 ### Idle screen
 
-During normal use, the current time is visible. When at least one signal is enabled,
-the nearest active signal is shown directly below it as `Signal HH:MM` (or the
-corresponding 12-hour representation). Time is updated once per minute. The same tick
-performs a cheap alarm reconciliation before weather housekeeping, while the nearest
-active alarm is also scheduled through Pebble Wakeup for an independent trigger.
+During normal use, the current time is visible. The nearest active alarm is
+shown as `Alarm: HH:MM`, and the nearest timer is shown beneath it as a remaining
+time countdown. When no alarm is configured, the timer occupies the first line.
+The countdown uses `Timer: HH:MM`, switching to `Timer: 00:SS` during the final
+minute. The display ordinarily updates once per minute, switching to once per
+second only near a timer's end. The nearest occurrence of either type is
+scheduled through Pebble Wakeup independently of the display.
 
 ### Glance screen
 
@@ -112,9 +114,9 @@ The native time picker limits timer intervals to `00:01` through `23:59`. Select
 `00:00` restores the previous valid interval without blocking settings save.
 
 **Precise timers.** An interval of `00:01` saved at `12:00:39` targets `12:01:39`, not
-`12:02:00`. The watch still displays `Signal HH:MM` and updates its clock once per minute;
-this does not round the timer deadline. Actual delivery depends on Pebble Wakeup and clock
-synchronization. The deadline is preserved when other settings are changed.
+`12:02:00`. The timer countdown does not round its deadline. Actual delivery depends
+on Pebble Wakeup and clock synchronization. The deadline is preserved when other
+settings are changed.
 
 The watch schedules one Pebble Wakeup for the nearest active alarm. When the Wakeup
 arrives, all signals due at that moment are queued in configuration order and the

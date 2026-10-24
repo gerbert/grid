@@ -68,7 +68,7 @@ typedef enum {
 
 // The weather condition text IDs occupy 0..WEATHER_CONDITION_COUNT - 1.
 typedef enum {
-    GRID_TEXT_SIGNAL = WEATHER_CONDITION_COUNT,
+    GRID_TEXT_ALARM = WEATHER_CONDITION_COUNT,
     GRID_TEXT_SLEEP,
     GRID_TEXT_STEPS,
     GRID_TEXT_HEART_RATE,
@@ -76,6 +76,7 @@ typedef enum {
     GRID_TEXT_DISTANCE,
     GRID_TEXT_HOURS,
     GRID_TEXT_MINUTES,
+    GRID_TEXT_TIMER,
     GRID_TEXT_COUNT
 } GridText;
 
@@ -171,6 +172,7 @@ typedef struct {
     char                  date_buf[20];
     int                   battery_pct;
     bool                  tick_subscribed;
+    bool                  second_ticks;
 } Clock;
 
 typedef struct {
@@ -218,11 +220,17 @@ typedef struct {
     uint16_t       pending_mask;
     uint16_t       active_minute;
     uint16_t       display_minute;
+    uint16_t       display_timer_interval;
+    time_t         display_timestamp;
+    time_t         display_now;
+    time_t         next_timer_due;
     uint32_t       last_vibe_ms;
     AppTimer      *vibe_timer;
     time_t         last_checked_minute;
     WakeupId       wakeup_id;
     bool           display_valid;
+    bool           display_timer;
+    bool           active_timer;
     bool           ringing;
 } Alarm;
 
@@ -256,6 +264,7 @@ void screen_deinit(Screen *screen);
 
 bool clock_init(Clock *clock, Layer *root, Layer *details, const ScreenGeometry *geometry);
 void clock_refresh_details(Clock *clock);
+void clock_set_second_ticks(Clock *clock, bool enabled);
 void clock_deinit(Clock *clock);
 
 bool health_init(Health *health, Layer *details, const ScreenGeometry *geometry);
@@ -274,6 +283,7 @@ bool alarm_init(Alarm *alarm, Layer *root, Layer *details, SettingsStore *settin
 bool alarm_handle_launch(Alarm *alarm, time_t now);
 void alarm_settings_changed(Alarm *alarm);
 void alarm_tick(Alarm *alarm, time_t now);
+void alarm_countdown_tick(Alarm *alarm, time_t now);
 bool alarm_is_ringing(const Alarm *alarm);
 void alarm_handle_flick(Alarm *alarm, AccelAxisType axis);
 void alarm_deinit(Alarm *alarm);

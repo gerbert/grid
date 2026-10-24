@@ -184,7 +184,7 @@ static void details_layer_update_proc(Layer *layer, GContext *ctx)
     draw_battery_label(self, ctx);
 }
 
-static void tick_handler(struct tm *tick_time, __attribute__((__unused__)) TimeUnits units_changed)
+static void tick_handler(struct tm *tick_time, TimeUnits units_changed)
 {
     App *app = app_from_active_window();
 
@@ -193,9 +193,22 @@ static void tick_handler(struct tm *tick_time, __attribute__((__unused__)) TimeU
 
     time_t now = time(NULL);
 
-    update_time_display(&app->clock, tick_time);
-    alarm_tick(&app->alarm, now);
-    weather_tick(&app->weather, &app->settings.value, now);
+    if (!app->clock.second_ticks || tick_time->tm_sec == 0 || (units_changed & MINUTE_UNIT)) {
+        update_time_display(&app->clock, tick_time);
+        alarm_tick(&app->alarm, now);
+        weather_tick(&app->weather, &app->settings.value, now);
+    } else {
+        alarm_countdown_tick(&app->alarm, now);
+    }
+}
+
+void clock_set_second_ticks(Clock *self, bool enabled)
+{
+    if (!self || !self->tick_subscribed || self->second_ticks == enabled)
+        return;
+
+    tick_timer_service_subscribe(enabled ? SECOND_UNIT : MINUTE_UNIT, tick_handler);
+    self->second_ticks = enabled;
 }
 
 bool clock_init(Clock *self, Layer *root, Layer *details, const ScreenGeometry *geometry)
@@ -250,6 +263,7 @@ void clock_deinit(Clock *self)
     TextLayer *time_layer      = self->time_layer;
 
     self->tick_subscribed = false;
+    self->second_ticks    = false;
     self->details_layer   = NULL;
     self->time_layer      = NULL;
     self->geometry        = NULL;

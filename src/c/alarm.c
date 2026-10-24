@@ -12,6 +12,7 @@
 #define ALARM_COLOR GColorWhite
 #endif
 
+#define ALARM_ROW_GAP             2
 #define ALARM_VIBE_REPEAT_MS      1800
 #define ALARM_FLICK_VIBE_GUARD_MS 650
 #define ALARM_WAKEUP_PERSIST_KEY  2
@@ -21,6 +22,7 @@
 typedef struct {
     time_t   timestamp;
     uint16_t minute_of_day;
+    bool     timer;
     bool     valid;
 } AlarmNext;
 
@@ -135,12 +137,17 @@ static bool alarm_matches_now(const AlarmSettings *alarm, const struct tm *curre
            current->tm_mday == alarm->day;
 }
 
-static void alarm_find_next(const Alarm *self, time_t now, AlarmNext *next)
+static void alarm_find_next(const Alarm *self, time_t now, AlarmNext *next, AlarmNext *next_timer,
+                            AlarmNext *next_alarm)
 {
     if (!next)
         return;
 
     *next = (AlarmNext){0};
+    if (next_timer)
+        *next_timer = (AlarmNext){0};
+    if (next_alarm)
+        *next_alarm = (AlarmNext){0};
 
     if (!self || !self->settings_store)
         return;
@@ -159,43 +166,60 @@ static void alarm_find_next(const Alarm *self, time_t now, AlarmNext *next)
 
         if (!valid || candidate < now)
             continue;
-        if (next->valid && candidate >= next->timestamp)
-            continue;
 
-        next->valid         = true;
-        next->timestamp     = candidate;
-        next->minute_of_day = alarm->minute_of_day;
+        AlarmNext occurrence = {
+            .valid         = true,
+            .timestamp     = candidate,
+            .minute_of_day = alarm->minute_of_day,
+            .timer         = alarm->repeat_mode == ALARM_REPEAT_TIMER,
+        };
 
-        if (alarm->repeat_mode == ALARM_REPEAT_TIMER) {
-            struct tm *local = localtime(&candidate);
-
-            if (local)
-                next->minute_of_day = (uint16_t)(local->tm_hour * 60 + local->tm_min);
-        }
+        if (!next->valid || candidate < next->timestamp)
+            *next = occurrence;
+        if (next_timer && occurrence.timer && (!next_timer->valid || candidate < next_timer->timestamp))
+            *next_timer = occurrence;
+        if (next_alarm && !occurrence.timer && (!next_alarm->valid || candidate < next_alarm->timestamp))
+            *next_alarm = occurrence;
     }
 }
 
-static void alarm_refresh_display(Alarm *self, const AlarmNext *next)
+static void alarm_refresh_display(Alarm *self, const AlarmNext *next_alarm, const AlarmNext *next_timer, time_t now)
 {
     if (!self || !self->layer)
         return;
 
+    AlarmNext current_next;
+    AlarmNext current_alarm;
+    AlarmNext current_timer;
+
+    if (!next_alarm || !next_timer) {
+        alarm_find_next(self, now + 1, &current_next, &current_timer, &current_alarm);
+        next_alarm = &current_alarm;
+        next_timer = &current_timer;
+    }
+
+    time_t timer_timestamp = next_timer->valid ? next_timer->timestamp : 0;
+
     if (self->ringing) {
-        self->display_valid  = true;
-        self->display_minute = self->active_minute;
-    } else if (next) {
-        self->display_valid = next->valid;
-
-        if (next->valid)
-            self->display_minute = next->minute_of_day;
+        self->display_valid = true;
+        self->display_timer = self->active_timer && !next_alarm->valid;
+        self->display_minute =
+            self->active_timer && next_alarm->valid ? next_alarm->minute_of_day : self->active_minute;
+        self->display_timestamp      = self->active_timer ? 0 : timer_timestamp;
+        self->display_timer_interval = self->active_timer ? (next_alarm->valid ? self->active_minute : 0)
+                                                          : (next_timer->valid ? next_timer->minute_of_day : 0);
+        self->display_now            = now;
     } else {
-        AlarmNext current_next;
+        bool same_timer = self->display_timestamp && timer_timestamp && self->display_timestamp == timer_timestamp;
 
-        alarm_find_next(self, time(NULL) + 1, &current_next);
-        self->display_valid = current_next.valid;
+        if (!same_timer || now > self->display_now || self->display_now - now > 1)
+            self->display_now = now;
 
-        if (current_next.valid)
-            self->display_minute = current_next.minute_of_day;
+        self->display_valid          = next_alarm->valid || next_timer->valid;
+        self->display_timer          = !next_alarm->valid && next_timer->valid;
+        self->display_minute         = next_alarm->valid ? next_alarm->minute_of_day : next_timer->minute_of_day;
+        self->display_timestamp      = timer_timestamp;
+        self->display_timer_interval = next_alarm->valid && next_timer->valid ? next_timer->minute_of_day : 0;
     }
 
     layer_mark_dirty(self->layer);
@@ -228,15 +252,58 @@ static void alarm_layer_update_proc(Layer *layer, GContext *ctx)
         return;
 
     char  time_buf[12]    = {0};
-    char  display_buf[32] = {0};
+    char  display_buf[80] = {0};
     GRect bounds          = layer_get_bounds(layer);
+    GRect row             = GRect(0, 0, bounds.size.w, (bounds.size.h - ALARM_ROW_GAP) / 2);
     GFont font            = fonts_get_system_font(ALARM_FONT);
 
-    format_alarm_time(self->display_minute, time_buf, sizeof(time_buf));
-    snprintf(display_buf, sizeof(display_buf), "%s %s", grid_i18n(GRID_TEXT_SIGNAL), time_buf);
+    int   cell_width = bounds.size.w / 2;
+    GRect label_row  = GRect(0, 0, cell_width, row.size.h);
+    GRect value_row  = GRect(cell_width, 0, bounds.size.w - cell_width, row.size.h);
 
     graphics_context_set_text_color(ctx, ALARM_COLOR);
-    graphics_draw_text(ctx, display_buf, font, bounds, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+    if (!self->display_timer) {
+        format_alarm_time(self->display_minute, time_buf, sizeof(time_buf));
+        snprintf(display_buf, sizeof(display_buf), "%s", grid_i18n(GRID_TEXT_ALARM));
+        graphics_draw_text(ctx, display_buf, font, label_row, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter,
+                           NULL);
+        graphics_draw_text(ctx, time_buf, font, value_row, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter,
+                           NULL);
+
+        if (!self->display_timer_interval)
+            return;
+
+        row.origin.y += graphics_text_layout_get_content_size(time_buf, font, row, GTextOverflowModeTrailingEllipsis,
+                                                              GTextAlignmentCenter)
+                            .h +
+                        ALARM_ROW_GAP;
+        label_row.origin.y = row.origin.y;
+        value_row.origin.y = row.origin.y;
+    }
+
+    time_t remaining = self->ringing && self->active_timer ? 0 : self->display_timestamp - self->display_now;
+
+    if (remaining < 0)
+        remaining = 0;
+
+    if (remaining >= 60) {
+        uint16_t minutes  = (uint16_t)((remaining + 59) / 60);
+        uint16_t interval = self->display_timer ? self->display_minute : self->display_timer_interval;
+
+        // Ignore small phone/watch clock differences without masking real clock corrections.
+        if (minutes > interval && remaining <= (time_t)interval * 60 + 2)
+            minutes = interval;
+
+        snprintf(time_buf, sizeof(time_buf), "%02u:%02u", minutes / 60, minutes % 60);
+    } else {
+        snprintf(time_buf, sizeof(time_buf), "00:%02u", (unsigned int)remaining);
+    }
+
+    snprintf(display_buf, sizeof(display_buf), "%s", grid_i18n(GRID_TEXT_TIMER));
+    graphics_draw_text(ctx, display_buf, font, label_row, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter,
+                       NULL);
+    graphics_draw_text(ctx, time_buf, font, value_row, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 }
 
 static void alarm_vibe_timer_cb(void *context);
@@ -336,26 +403,19 @@ static bool alarm_start_next(Alarm *self)
 
         self->pending_mask &= (uint16_t)~bit;
         self->active_minute = alarm->minute_of_day;
-        if (alarm->repeat_mode == ALARM_REPEAT_TIMER) {
-            time_t timestamp;
-
-            if (alarm_once_time(alarm, &timestamp)) {
-                struct tm *local = localtime(&timestamp);
-
-                if (local)
-                    self->active_minute = (uint16_t)(local->tm_hour * 60 + local->tm_min);
-            }
-        }
-        self->last_vibe_ms = 0;
-        self->ringing      = true;
+        self->active_timer  = alarm->repeat_mode == ALARM_REPEAT_TIMER;
+        self->last_vibe_ms  = 0;
+        self->ringing       = true;
 
         alarm_vibe_pulse(self);
-        alarm_refresh_display(self, NULL);
+        alarm_refresh_display(self, NULL, NULL, time(NULL));
         return true;
     }
 
     return false;
 }
+
+static void alarm_reconcile_schedule(Alarm *self, time_t now);
 
 static void alarm_stop_current(Alarm *self)
 {
@@ -371,7 +431,7 @@ static void alarm_stop_current(Alarm *self)
         if (alarm_cleanup(&updated) && !settings_commit(self->settings_store, &updated))
             APP_LOG(APP_LOG_LEVEL_WARNING, "Alarm settings persist failed");
 
-        alarm_refresh_display(self, NULL);
+        alarm_reconcile_schedule(self, time(NULL));
     }
 }
 
@@ -468,12 +528,19 @@ static void alarm_reconcile_schedule(Alarm *self, time_t now)
         return;
 
     AlarmNext next;
+    AlarmNext next_timer;
+    AlarmNext next_alarm;
 
-    alarm_find_next(self, now + 1, &next);
+    alarm_find_next(self, now + 1, &next, &next_timer, &next_alarm);
     alarm_schedule_next_wakeup(self, &next);
 
-    if (!self->ringing)
-        alarm_refresh_display(self, &next);
+    self->next_timer_due = next_timer.valid ? next_timer.timestamp : 0;
+    time_t remaining     = self->next_timer_due - now;
+
+    // Second ticks also protect nearby timers when an earlier signal is still ringing.
+    clock_set_second_ticks(&self->settings_store->app->clock, self->next_timer_due && remaining > 0 && remaining < 120);
+
+    alarm_refresh_display(self, &next_alarm, &next_timer, now);
 }
 
 static void alarm_process_due(Alarm *self, time_t now)
@@ -504,7 +571,8 @@ static void alarm_process_due(Alarm *self, time_t now)
         if (alarm->repeat_mode != ALARM_REPEAT_DAYS) {
             time_t alarm_time;
 
-            if (!alarm_once_time(alarm, &alarm_time) || alarm_time < minute_start) {
+            if (!alarm_once_time(alarm, &alarm_time) ||
+                (alarm->repeat_mode == ALARM_REPEAT_TIMER ? alarm_time <= now - 60 : alarm_time < minute_start)) {
                 alarm->enabled   = 0;
                 settings_changed = true;
                 continue;
@@ -576,7 +644,10 @@ bool alarm_init(Alarm *self, Layer *root, Layer *details, SettingsStore *setting
     if (alarm_cleanup(&updated) && !settings_commit(self->settings_store, &updated))
         APP_LOG(APP_LOG_LEVEL_WARNING, "Alarm settings persist failed");
 
-    self->layer = layer_create_with_data(geometry->weather, sizeof(Alarm *));
+    GRect display_bounds = geometry->weather;
+
+    display_bounds.size.h = 2 * display_bounds.size.h + ALARM_ROW_GAP;
+    self->layer           = layer_create_with_data(display_bounds, sizeof(Alarm *));
 
     if (!self->layer)
         goto fail;
@@ -628,6 +699,38 @@ void alarm_tick(Alarm *self, time_t now)
     alarm_reconcile_schedule(self, now);
 }
 
+void alarm_countdown_tick(Alarm *self, time_t now)
+{
+    if (!self)
+        return;
+
+    // Delivery is independent of the countdown layer, including while a prior signal rings.
+    if (self->next_timer_due && now >= self->next_timer_due) {
+        alarm_tick(self, now);
+        return;
+    }
+
+    if (!self->display_valid || (!self->display_timer && !self->display_timer_interval) ||
+        (self->ringing && self->active_timer))
+        return;
+
+    time_t remaining = self->display_timestamp - now;
+
+    if (remaining <= 0) {
+        alarm_tick(self, now);
+    } else {
+        bool clock_adjusted = self->display_now - now > 1;
+
+        if (now > self->display_now || clock_adjusted)
+            self->display_now = now;
+
+        if (clock_adjusted)
+            alarm_reconcile_schedule(self, now);
+        else if (remaining <= 60 && self->layer)
+            layer_mark_dirty(self->layer);
+    }
+}
+
 bool alarm_is_ringing(const Alarm *self) { return self && self->ringing; }
 
 void alarm_handle_flick(Alarm *self, __attribute__((__unused__)) AccelAxisType axis)
@@ -654,17 +757,23 @@ void alarm_deinit(Alarm *self)
 
     alarm_vibe_stop(self);
 
-    self->layer               = NULL;
-    self->details_layer       = NULL;
-    self->settings_store      = NULL;
-    self->pending_mask        = 0;
-    self->active_minute       = 0;
-    self->display_minute      = 0;
-    self->last_vibe_ms        = 0;
-    self->vibe_timer          = NULL;
-    self->last_checked_minute = (time_t)-1;
-    self->display_valid       = false;
-    self->ringing             = false;
+    self->layer                  = NULL;
+    self->details_layer          = NULL;
+    self->settings_store         = NULL;
+    self->pending_mask           = 0;
+    self->active_minute          = 0;
+    self->display_minute         = 0;
+    self->display_timer_interval = 0;
+    self->display_timestamp      = 0;
+    self->display_now            = 0;
+    self->next_timer_due         = 0;
+    self->last_vibe_ms           = 0;
+    self->vibe_timer             = NULL;
+    self->last_checked_minute    = (time_t)-1;
+    self->display_valid          = false;
+    self->display_timer          = false;
+    self->active_timer           = false;
+    self->ringing                = false;
     alarm_forget_wakeup(self);
 
     // Wakeup has no unsubscribe API. Do not cancel the scheduled system event:

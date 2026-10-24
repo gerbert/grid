@@ -18,7 +18,7 @@ static const GridLocale s_zh = {
         [WEATHER_CONDITION_SNOW_SHOWERS] = "阵雪",
         [WEATHER_CONDITION_THUNDERSTORM] = "雷暴",
         [WEATHER_CONDITION_HAIL_STORM] = "冰雹",
-        [GRID_TEXT_SIGNAL] = "提醒",
+        [GRID_TEXT_ALARM] = "闹钟",
         [GRID_TEXT_SLEEP] = "睡眠",
         [GRID_TEXT_STEPS] = "步数",
         [GRID_TEXT_HEART_RATE] = "心率",
@@ -26,6 +26,7 @@ static const GridLocale s_zh = {
         [GRID_TEXT_DISTANCE] = "公里",
         [GRID_TEXT_HOURS] = "时",
         [GRID_TEXT_MINUTES] = "分",
+        [GRID_TEXT_TIMER] = "计时器",
     },
     .weekday = {
         [0] = "周日",
