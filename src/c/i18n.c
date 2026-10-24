@@ -6,27 +6,27 @@
 
 #include <string.h>
 
-#include "include/locales/en.h"
-#include "include/locales/de.h"
-#include "include/locales/it.h"
-#include "include/locales/es.h"
-#include "include/locales/ru.h"
-#include "include/locales/fr.h"
-#include "include/locales/pt.h"
+#include "include/locales/ar.h"
 #include "include/locales/bg.h"
 #include "include/locales/ca.h"
 #include "include/locales/da.h"
-#include "include/locales/ja.h"
-#include "include/locales/sv.h"
-#include "include/locales/zh.h"
+#include "include/locales/de.h"
+#include "include/locales/en.h"
+#include "include/locales/es.h"
+#include "include/locales/fr.h"
 #include "include/locales/he.h"
-#include "include/locales/ar.h"
+#include "include/locales/it.h"
+#include "include/locales/ja.h"
 #include "include/locales/my.h"
-#include "include/locales/zh_tw.h"
+#include "include/locales/nb.h"
 #include "include/locales/nl.h"
 #include "include/locales/pl.h"
-#include "include/locales/nb.h"
+#include "include/locales/pt.h"
+#include "include/locales/ru.h"
+#include "include/locales/sv.h"
 #include "include/locales/uk.h"
+#include "include/locales/zh.h"
+#include "include/locales/zh_tw.h"
 
 static const GridLocale *s_locale = &s_en;
 
@@ -60,9 +60,8 @@ void grid_i18n_init(void)
         s_locale = &s_ja;
     else if (locale[0] == 's' && locale[1] == 'v')
         s_locale = &s_sv;
-    else if (strcmp(locale, "zh_CN") == 0 || strcmp(locale, "zh") == 0 ||
-             strcmp(locale, "zh_Hans") == 0 || strcmp(locale, "zh_Hans_CN") == 0 ||
-             strcmp(locale, "en_CN") == 0)
+    else if (strcmp(locale, "zh_CN") == 0 || strcmp(locale, "zh") == 0 || strcmp(locale, "zh_Hans") == 0 ||
+             strcmp(locale, "zh_Hans_CN") == 0 || strcmp(locale, "en_CN") == 0)
         s_locale = &s_zh;
     else if (locale[0] == 'h' && locale[1] == 'e')
         s_locale = &s_he;
@@ -70,16 +69,14 @@ void grid_i18n_init(void)
         s_locale = &s_ar;
     else if (locale[0] == 'm' && locale[1] == 'y')
         s_locale = &s_my;
-    else if (strcmp(locale, "en_TW") == 0 || strcmp(locale, "zh_TW") == 0 ||
-             strcmp(locale, "zh_HK") == 0 || strcmp(locale, "zh_MO") == 0 ||
-             strncmp(locale, "zh_Hant", 7) == 0)
+    else if (strcmp(locale, "en_TW") == 0 || strcmp(locale, "zh_TW") == 0 || strcmp(locale, "zh_HK") == 0 ||
+             strcmp(locale, "zh_MO") == 0 || strncmp(locale, "zh_Hant", 7) == 0)
         s_locale = &s_zh_tw;
     else if (locale[0] == 'n' && locale[1] == 'l')
         s_locale = &s_nl;
     else if (locale[0] == 'p' && locale[1] == 'l')
         s_locale = &s_pl;
-    else if ((locale[0] == 'n' && locale[1] == 'b') ||
-             (locale[0] == 'n' && locale[1] == 'o'))
+    else if ((locale[0] == 'n' && locale[1] == 'b') || (locale[0] == 'n' && locale[1] == 'o'))
         s_locale = &s_nb;
     else if (locale[0] == 'u' && locale[1] == 'k')
         s_locale = &s_uk;

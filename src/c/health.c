@@ -130,21 +130,21 @@ static void draw_health_row(const Health *self, GContext *ctx)
     int   cell_width = row.size.w / HEALTH_CELL_COUNT;
 
 #if HAS_HEART_RATE
-    draw_metric_cell(ctx, GRect(0 * cell_width, row.origin.y, cell_width, row.size.h),
-                     grid_i18n(GRID_TEXT_STEPS), steps_buf);
-    draw_metric_cell(ctx, GRect(1 * cell_width, row.origin.y, cell_width, row.size.h),
-                     grid_i18n(GRID_TEXT_HEART_RATE), hr_buf);
-    draw_metric_cell(ctx, GRect(2 * cell_width, row.origin.y, cell_width, row.size.h),
-                     grid_i18n(GRID_TEXT_CALORIES), kcal_buf);
-    draw_metric_cell(ctx, GRect(3 * cell_width, row.origin.y, cell_width, row.size.h),
-                     grid_i18n(GRID_TEXT_DISTANCE), dist_buf);
+    draw_metric_cell(ctx, GRect(0 * cell_width, row.origin.y, cell_width, row.size.h), grid_i18n(GRID_TEXT_STEPS),
+                     steps_buf);
+    draw_metric_cell(ctx, GRect(1 * cell_width, row.origin.y, cell_width, row.size.h), grid_i18n(GRID_TEXT_HEART_RATE),
+                     hr_buf);
+    draw_metric_cell(ctx, GRect(2 * cell_width, row.origin.y, cell_width, row.size.h), grid_i18n(GRID_TEXT_CALORIES),
+                     kcal_buf);
+    draw_metric_cell(ctx, GRect(3 * cell_width, row.origin.y, cell_width, row.size.h), grid_i18n(GRID_TEXT_DISTANCE),
+                     dist_buf);
 #else
-    draw_metric_cell(ctx, GRect(0 * cell_width, row.origin.y, cell_width, row.size.h),
-                     grid_i18n(GRID_TEXT_STEPS), steps_buf);
-    draw_metric_cell(ctx, GRect(1 * cell_width, row.origin.y, cell_width, row.size.h),
-                     grid_i18n(GRID_TEXT_CALORIES), kcal_buf);
-    draw_metric_cell(ctx, GRect(2 * cell_width, row.origin.y, cell_width, row.size.h),
-                     grid_i18n(GRID_TEXT_DISTANCE), dist_buf);
+    draw_metric_cell(ctx, GRect(0 * cell_width, row.origin.y, cell_width, row.size.h), grid_i18n(GRID_TEXT_STEPS),
+                     steps_buf);
+    draw_metric_cell(ctx, GRect(1 * cell_width, row.origin.y, cell_width, row.size.h), grid_i18n(GRID_TEXT_CALORIES),
+                     kcal_buf);
+    draw_metric_cell(ctx, GRect(2 * cell_width, row.origin.y, cell_width, row.size.h), grid_i18n(GRID_TEXT_DISTANCE),
+                     dist_buf);
 #endif
 
     graphics_context_set_stroke_color(ctx, METRIC_SEPARATOR_COLOR);

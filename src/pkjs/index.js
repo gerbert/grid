@@ -20,6 +20,7 @@ function customClay() {
     var MAX_ALARMS = 5;
     var REPEAT_ONCE = 0;
     var REPEAT_SELECTED = 4;
+    var REPEAT_TIMER = 5;
     var DAYS_WEEKDAYS = 0x3e;
     var DAY_BITS = [
         1 << 1,
@@ -61,7 +62,7 @@ function customClay() {
                     item.description = t(item.description);
                 }
                 if (item.type === 'heading' && typeof item.defaultValue === 'string') {
-                    item.defaultValue = t(item.defaultValue).replace('Alarms', t('Alarms'));
+                    item.defaultValue = t(item.defaultValue).replace('Signals', t('Signals'));
                 }
                 if (item.type === 'submit') {
                     item.defaultValue = t(item.defaultValue);
@@ -81,8 +82,8 @@ function customClay() {
                 }
                 if (item.attributes && item.attributes['aria-label']) {
                     item.attributes['aria-label'] = item.attributes['aria-label'].replace(
-                        /^Alarm (\d+) time$/, function(match, number) {
-                            return t('Alarm') + ' ' + number + ' ' + t('time');
+                        /^Signal (\d+) time$/, function(match, number) {
+                            return t('Signal') + ' ' + number + ' ' + t('time');
                         }
                     );
                 }
@@ -328,6 +329,10 @@ function customClay() {
             state.a = [];
         }
         state.a = state.a.slice(0, MAX_ALARMS);
+        if (typeof state.l !== 'string' ||
+            !/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(state.l) || state.l === '00:00') {
+            delete state.l;
+        }
         return state;
     }
 
@@ -336,7 +341,7 @@ function customClay() {
         if (typeof mode === 'string' && /^\d+$/.test(mode)) {
             mode = parseInt(mode, 10);
         }
-        return mode >= REPEAT_ONCE && mode <= REPEAT_SELECTED ? mode : REPEAT_ONCE;
+        return mode >= REPEAT_ONCE && mode <= REPEAT_TIMER ? mode : REPEAT_ONCE;
     }
 
     function maskToChecks(mask) {
@@ -402,6 +407,14 @@ function customClay() {
                 return;
             }
 
+            if (repeatValue(row.repeat.get()) === REPEAT_TIMER) {
+                row.input.min = '00:01';
+                row.input.max = '23:59';
+            } else {
+                row.input.removeAttribute('min');
+                row.input.removeAttribute('max');
+            }
+
             if (repeatValue(row.repeat.get()) === REPEAT_SELECTED) {
                 row.days.show();
                 row.daysTr.removeAttribute('hidden');
@@ -418,7 +431,9 @@ function customClay() {
             for (i = 0; i < MAX_ALARMS; i += 1) {
                 if (i < state.a.length) {
                     alarm = state.a[i] || {};
-                    rows[i].repeat.set(repeatValue(alarm.r));
+                    var mode = repeatValue(alarm.r);
+                    rows[i].repeat.set(mode);
+                    rows[i].input.defaultValue = mode === REPEAT_TIMER ? '00:15' : '07:00';
                     rows[i].time.set(typeof alarm.t === 'string' ? alarm.t : '07:00');
                     rows[i].days.set(maskToChecks(alarm.m));
                     setRowVisible(rows[i], true);
@@ -442,11 +457,36 @@ function customClay() {
                 return;
             }
 
+            var mode = repeatValue(rows[index].repeat.get());
+            var oldMode = repeatValue(state.a[index].r);
+
+            if (mode !== oldMode && (mode === REPEAT_TIMER || oldMode === REPEAT_TIMER)) {
+                syncing = true;
+                rows[index].input.defaultValue = mode === REPEAT_TIMER ? '00:15' : '07:00';
+                rows[index].time.set(mode === REPEAT_TIMER ? (state.l || '00:15') : '07:00');
+                syncing = false;
+            } else if (mode === REPEAT_TIMER && rows[index].time.get() === '00:00') {
+                syncing = true;
+                rows[index].time.set(state.a[index].t && state.a[index].t !== '00:00' ?
+                    state.a[index].t : '00:15');
+                syncing = false;
+            } else if (mode === REPEAT_TIMER && !rows[index].time.get()) {
+                // A cleared native time picker restores the timer's default.
+                syncing = true;
+                rows[index].time.set('00:15');
+                syncing = false;
+            }
+
             state.a[index].e = 1;
-            state.a[index].r = repeatValue(rows[index].repeat.get());
+            state.a[index].r = mode;
             state.a[index].t = rows[index].time.get();
             state.a[index].m = checksToMask(rows[index].days.get());
+            if (mode === REPEAT_TIMER && state.a[index].t && state.a[index].t !== '00:00') {
+                state.l = state.a[index].t;
+            }
             delete state.a[index].d;
+            delete state.a[index].x;
+            delete state.a[index].s;
             saveState();
             setRowVisible(rows[index], true);
         }
@@ -615,6 +655,7 @@ function customClay() {
             timeInput.style.minWidth = '0';
             timeInput.style.margin = '0';
             timeInput.style.boxSizing = 'border-box';
+            timeInput.lang = languageTag;
 
             // Clay's standard button has min-width: 12rem. Remove only that
             // geometry constraint so the primary delete button stays compact.
@@ -636,6 +677,7 @@ function customClay() {
             rows.push({
                 repeat: repeat,
                 time: time,
+                input: timeInput,
                 days: days,
                 remove: remove,
                 tr: tr,
@@ -663,7 +705,7 @@ function customClay() {
         });
 
         // Keep the existing Clay primary button, but place it in the section
-        // heading so alarm creation stays on the same line as "Alarms".
+        // heading so signal creation stays on the same line as "Signals".
         addButtonTarget = addButton.$manipulatorTarget[0];
         addButtonElement = addButton.$element[0];
         addButtonSlot = document.getElementById('alarm-add-slot');

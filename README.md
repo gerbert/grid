@@ -11,12 +11,12 @@ sleep time.
 
 ## Highlights
 
-- Clean idle screen with time and the next active alarm when configured
+- Clean idle screen with time and the next active signal when configured
 - Doppler animation triggered by a wrist flick
 - Configurable glance duration from 3 to 30 seconds
 - Optional Do not disturb interval that suppresses glance activation
 - Optional DnD wrist-flick backlight for the idle clock without opening the glance
-- Up to 5 persistent one-time or recurring alarms
+- Up to 5 persistent signals: one-time or recurring alarms, or timers up to 23 hours 59 minutes
 - Optional 12-hour weather forecast with a selectable provider
 - Text, icon, combined icon-and-text, or temperature-only weather display
 - Configurable weather update interval from 1 to 6 hours
@@ -71,8 +71,8 @@ the lower grid section.
 
 ### Idle screen
 
-During normal use, the current time is visible. When at least one alarm is enabled,
-the nearest active alarm is shown directly below it as `Next alarm HH:MM` (or the
+During normal use, the current time is visible. When at least one signal is enabled,
+the nearest active signal is shown directly below it as `Signal HH:MM` (or the
 corresponding 12-hour representation). Time is updated once per minute. The same tick
 performs a cheap alarm reconciliation before weather housekeeping, while the nearest
 active alarm is also scheduled through Pebble Wakeup for an independent trigger.
@@ -95,10 +95,10 @@ empty interval. An already active glance is not interrupted. Optionally, the
 same wrist flick can still request the backlight while DnD is active; in that
 case the idle clock remains on screen and the Doppler/full glance does not start.
 
-## Alarms
+## Signals
 
-Alarms are configured on the phone and stored together with the persistent watchface
-settings. Up to five active alarms can be configured. Alarm vibration uses the
+Signals are configured on the phone and stored together with the persistent watchface
+settings. Up to five active signals can be configured. Their vibration uses the
 firmware-provided long pulse and repeats continuously until the alarm is reset.
 
 A one-time alarm uses the next occurrence of the selected local time and is removed after it fires. Expired
@@ -106,18 +106,26 @@ one-time entries are also pruned locally from the phone configuration as soon as
 date and time is reached, before the configuration opens. Recurring
 alarms can run every day, on weekdays, on weekends, or on any selected combination
 of weekdays. Selecting a single weekday therefore creates a weekly alarm for that
-day.
+day. A timer runs once after a configured `HH:MM` interval from `00:01` through
+`23:59`. New timers use the last saved interval or `00:15`; Reset returns to `00:15`.
+The native time picker limits timer intervals to `00:01` through `23:59`. Selecting
+`00:00` restores the previous valid interval without blocking settings save.
+
+**Precise timers.** An interval of `00:01` saved at `12:00:39` targets `12:01:39`, not
+`12:02:00`. The watch still displays `Signal HH:MM` and updates its clock once per minute;
+this does not round the timer deadline. Actual delivery depends on Pebble Wakeup and clock
+synchronization. The deadline is preserved when other settings are changed.
 
 The watch schedules one Pebble Wakeup for the nearest active alarm. When the Wakeup
-arrives, all alarms due in that local minute are queued in configuration order and the
+arrives, all signals due at that moment are queued in configuration order and the
 first firmware long pulse starts immediately. One-time completion is persisted after
 that first user-visible reaction; finished one-time entries are removed once the due
 queue has drained. The next nearest Wakeup is then scheduled.
 The minute tick keeps a cheap reconciliation path for startup, clock/timezone changes,
-and Wakeup scheduling failures. Deduplication by epoch minute prevents a Wakeup and the
-minute tick from triggering the same alarm twice. While an alarm is already ringing, a
-short-lived AppTimer only repeats the firmware long pulse; it has no role in deciding
-when an alarm fires.
+and Wakeup scheduling failures. Wall-clock alarms are checked once per minute, while
+timers are checked against their second-accurate deadlines and disabled after firing.
+While an alarm is already ringing, a short-lived AppTimer only repeats the firmware
+long pulse; it has no role in deciding when an alarm fires.
 
 While an alarm is ringing, the normal wrist flick gesture is reserved for stopping it.
 A single accepted flick stops the current alarm. Outside the ringing state, flick behavior
@@ -205,9 +213,9 @@ Available options:
   DnD suppresses glance activation only; it never suppresses a ringing alarm or its flick-to-reset handling.
 - `Clock backlight on flick`: disabled by default; while DnD is active, a normal wrist
   flick may turn on the backlight without starting Doppler or showing the full glance
-- `Alarms`: add, edit, and delete up to 5 active alarms in-place
+- `Signals`: add, edit, and delete up to 5 active signals in-place
 - A ringing alarm is reset by a single normal wrist flick; this is not configurable
-- Per-alarm schedule: one time, every day, weekdays, weekends, or selected days
+- Per-signal schedule: one time, every day, weekdays, weekends, selected days, or a timer interval up to 23 hours 59 minutes
 - `Enable weather`: disabled by default
 - `Provider`: Open-Meteo (default) or MET Norway
 - `Condition display`: text by default, with optional icon, icon-plus-text,

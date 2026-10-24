@@ -58,17 +58,29 @@ static void settings_validate_alarms(AlarmCollectionSettings *alarms)
 
         alarm->enabled = alarm->enabled ? 1 : 0;
 
-        if (alarm->minute_of_day >= GRID_MINUTES_PER_DAY) {
+        if (alarm->minute_of_day >= GRID_MINUTES_PER_DAY ||
+            (alarm->repeat_mode == ALARM_REPEAT_TIMER && !alarm->minute_of_day)) {
             alarm->minute_of_day = 7 * 60;
             alarm->enabled       = 0;
         }
 
-        if (alarm->repeat_mode != ALARM_REPEAT_ONCE && alarm->repeat_mode != ALARM_REPEAT_DAYS) {
+        if (alarm->repeat_mode != ALARM_REPEAT_ONCE && alarm->repeat_mode != ALARM_REPEAT_DAYS &&
+            alarm->repeat_mode != ALARM_REPEAT_TIMER) {
             alarm->repeat_mode = ALARM_REPEAT_ONCE;
             alarm->enabled     = 0;
         }
 
         alarm->days_mask &= GRID_ALARM_ALL_DAYS_MASK;
+
+        if (alarm->repeat_mode == ALARM_REPEAT_TIMER) {
+            alarm->days_mask = 0;
+
+            // Timer mode uses year/month/day for Unix minutes and reserved for seconds.
+            if (alarm->reserved >= 60 || (!alarm->year && !alarm->month && !alarm->day))
+                alarm->enabled = 0;
+
+            continue;
+        }
 
         alarm->reserved = 0;
 
