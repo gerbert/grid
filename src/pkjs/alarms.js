@@ -8,6 +8,7 @@ var REPEAT_EVERY_DAY = 1;
 var REPEAT_WEEKDAYS = 2;
 var REPEAT_WEEKENDS = 3;
 var REPEAT_SELECTED = 4;
+var REPEAT_TIMER = 5;
 
 var defaultState = JSON.stringify({ a: [] });
 
@@ -79,7 +80,7 @@ function repeatMode(value) {
     if (typeof mode === 'string' && /^\d+$/.test(mode)) {
         mode = parseInt(mode, 10);
     }
-    if (!integerNumber(mode) || mode < REPEAT_ONCE || mode > REPEAT_SELECTED) {
+    if (!integerNumber(mode) || mode < REPEAT_ONCE || mode > REPEAT_TIMER) {
         return REPEAT_ONCE;
     }
     return mode;
@@ -123,14 +124,26 @@ function onceHasExpired(alarm, now) {
 
 function normalizeAlarm(value, expirePast) {
     var source = value && typeof value === 'object' ? value : {};
+    var mode = repeatMode(source.r);
     var timeValue = validTime(source.t) ? source.t : '07:00';
     var alarm = {
         e: 1,
         t: timeValue,
-        r: repeatMode(source.r),
-        d: dateParts(source.d) ? source.d : nextOneTimeDate(timeValue, new Date()),
+        r: mode,
         m: integerNumber(source.m) ? source.m & DAYS_ALL : DAYS_WEEKDAYS
     };
+
+    if (mode === REPEAT_TIMER) {
+        // Keep the original deadline across subsequent settings saves.
+        var deadline = Math.floor(new Date().getTime() / 1000) + minuteFromTime(timeValue) * 60;
+        var stored = integerNumber(source.x) && source.x > 0 && source.x <= 0xffffffff;
+        alarm.x = stored ? source.x : Math.floor(deadline / 60);
+        alarm.s = stored ? (integerNumber(source.s) && source.s >= 0 && source.s < 60 ? source.s : 0) :
+            deadline % 60;
+        return alarm;
+    }
+
+    alarm.d = dateParts(source.d) ? source.d : nextOneTimeDate(timeValue, new Date());
 
     if (alarm.r === REPEAT_SELECTED && alarm.m === 0) {
         alarm.m = 1 << 1;
@@ -155,16 +168,22 @@ function normalizeState(value, expirePast) {
     var state = {
         a: []
     };
+    if (validTime(source.l) && source.l !== '00:00') {
+        state.l = source.l;
+    }
     var alarms = source.a instanceof Array ? source.a : [];
     var i;
 
     for (i = 0; i < alarms.length && state.a.length < MAX_ALARMS; i += 1) {
-        var alarm = normalizeAlarm(alarms[i], expirePast);
-
-        if (!alarms[i] || alarms[i].e === 0) {
+        if (!alarms[i] || alarms[i].e === 0 ||
+            (repeatMode(alarms[i].r) === REPEAT_TIMER &&
+             (!validTime(alarms[i].t) || alarms[i].t === '00:00'))) {
             continue;
         }
-        if (expirePast && alarm.r === REPEAT_ONCE && onceHasExpired(alarm, new Date())) {
+
+        var alarm = normalizeAlarm(alarms[i], expirePast);
+        if (expirePast && ((alarm.r === REPEAT_ONCE && onceHasExpired(alarm, new Date())) ||
+            (alarm.r === REPEAT_TIMER && alarm.x * 60 + alarm.s <= Math.floor(new Date().getTime() / 1000)))) {
             continue;
         }
 
@@ -180,18 +199,18 @@ function encode(stateValue) {
 
     state.a.forEach(function(alarm) {
         var minute = minuteFromTime(alarm.t);
-        var mode = alarm.r === REPEAT_ONCE ? 0 : 1;
+        var mode = alarm.r === REPEAT_TIMER ? 2 : alarm.r === REPEAT_ONCE ? 0 : 1;
         var mask = maskForRepeat(alarm.r, alarm.m);
         var enabled = 1;
-        var parts = alarm.r === REPEAT_ONCE ? dateParts(alarm.d) : null;
+        var parts = mode === 0 ? dateParts(alarm.d) : null;
 
         if ((mode === 1 && mask === 0) || (mode === 0 && !parts)) {
             enabled = 0;
         }
 
-        var year = parts ? parts.year : 0;
-        var month = parts ? parts.month : 0;
-        var day = parts ? parts.day : 0;
+        var year = mode === 2 ? alarm.x & 0xffff : parts ? parts.year : 0;
+        var month = mode === 2 ? (alarm.x >>> 16) & 0xff : parts ? parts.month : 0;
+        var day = mode === 2 ? (alarm.x >>> 24) & 0xff : parts ? parts.day : 0;
 
         data.push(
             enabled,
@@ -199,7 +218,7 @@ function encode(stateValue) {
             minute & 0xff,
             (minute >> 8) & 0xff,
             mask,
-            0, // Reserved.
+            mode === 2 ? alarm.s : 0,
             year & 0xff,
             (year >> 8) & 0xff,
             month,

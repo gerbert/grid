@@ -168,8 +168,8 @@ void clock_refresh_details(Clock *self)
     struct tm *time_info = localtime(&now);
 
     if (time_info) {
-        snprintf(self->date_buf, sizeof(self->date_buf), "[%s %02d %s]",
-                 grid_i18n_weekday(time_info->tm_wday), time_info->tm_mday, grid_i18n_month(time_info->tm_mon));
+        snprintf(self->date_buf, sizeof(self->date_buf), "[%s %02d %s]", grid_i18n_weekday(time_info->tm_wday),
+                 time_info->tm_mday, grid_i18n_month(time_info->tm_mon));
     }
 
     self->battery_pct = battery_state_service_peek().charge_percent;

@@ -6,13 +6,14 @@ var repeatOptions = [
     { label: 'Every day', value: 1 },
     { label: 'Weekdays', value: 2 },
     { label: 'Weekends', value: 3 },
-    { label: 'Selected days', value: 4 }
+    { label: 'Selected days', value: 4 },
+    { label: 'Timer', value: 5 }
 ];
 
 var alarmItems = [
     {
         type: 'heading',
-        defaultValue: '<table width="100%" cellpadding="0" cellspacing="0"><tr><td>Alarms</td><td id="alarm-add-slot" align="right"></td></tr></table>'
+        defaultValue: '<table width="100%" cellpadding="0" cellspacing="0"><tr><td>Signals</td><td id="alarm-add-slot" align="right"></td></tr></table>'
     },
     {
         type: 'input',
@@ -39,7 +40,7 @@ for (var alarmIndex = 0; alarmIndex < 5; alarmIndex += 1) {
             attributes: {
                 type: 'time',
                 value: '07:00',
-                'aria-label': 'Alarm ' + (alarmIndex + 1) + ' time'
+                'aria-label': 'Signal ' + (alarmIndex + 1) + ' time'
             }
         },
         {
@@ -190,6 +191,7 @@ module.exports = [
     },
     {
         type: 'submit',
+        id: 'SAVE_SETTINGS',
         defaultValue: 'Save Settings'
     }
 ];

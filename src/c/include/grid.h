@@ -68,7 +68,7 @@ typedef enum {
 
 // The weather condition text IDs occupy 0..WEATHER_CONDITION_COUNT - 1.
 typedef enum {
-    GRID_TEXT_NEXT_ALARM = WEATHER_CONDITION_COUNT,
+    GRID_TEXT_SIGNAL = WEATHER_CONDITION_COUNT,
     GRID_TEXT_SLEEP,
     GRID_TEXT_STEPS,
     GRID_TEXT_HEART_RATE,
@@ -79,7 +79,7 @@ typedef enum {
     GRID_TEXT_COUNT
 } GridText;
 
-void grid_i18n_init(void);
+void        grid_i18n_init(void);
 const char *grid_i18n(uint8_t text_id);
 const char *grid_i18n_weekday(int weekday);
 const char *grid_i18n_month(int month);
@@ -110,8 +110,9 @@ typedef struct {
 } WeatherSettings;
 
 typedef enum {
-    ALARM_REPEAT_ONCE = 0,
-    ALARM_REPEAT_DAYS = 1,
+    ALARM_REPEAT_ONCE  = 0,
+    ALARM_REPEAT_DAYS  = 1,
+    ALARM_REPEAT_TIMER = 2,
 } AlarmRepeatMode;
 
 typedef struct {

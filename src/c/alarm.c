@@ -35,7 +35,27 @@ static uint32_t current_millis(void)
 
 static bool alarm_once_time(const AlarmSettings *alarm, time_t *result)
 {
-    if (!alarm || alarm->year < GRID_ALARM_MIN_YEAR || alarm->year > GRID_ALARM_MAX_YEAR || alarm->month < 1 ||
+    if (!alarm)
+        return false;
+
+    if (alarm->repeat_mode == ALARM_REPEAT_TIMER) {
+        if (!alarm->minute_of_day || alarm->minute_of_day >= GRID_MINUTES_PER_DAY)
+            return false;
+
+        uint32_t epoch_minute = (uint32_t)alarm->year | ((uint32_t)alarm->month << 16) | ((uint32_t)alarm->day << 24);
+        uint64_t seconds      = (uint64_t)epoch_minute * 60u + alarm->reserved;
+        time_t   timestamp    = (time_t)seconds;
+
+        if (timestamp <= 0 || (uint64_t)timestamp != seconds)
+            return false;
+
+        if (result)
+            *result = timestamp;
+
+        return true;
+    }
+
+    if (alarm->year < GRID_ALARM_MIN_YEAR || alarm->year > GRID_ALARM_MAX_YEAR || alarm->month < 1 ||
         alarm->month > 12 || alarm->day < 1 || alarm->day > 31 || alarm->minute_of_day >= GRID_MINUTES_PER_DAY)
         return false;
 
@@ -134,8 +154,8 @@ static void alarm_find_next(const Alarm *self, time_t now, AlarmNext *next)
         if (!alarm->enabled)
             continue;
 
-        bool valid = alarm->repeat_mode == ALARM_REPEAT_ONCE ? alarm_once_time(alarm, &candidate)
-                                                             : alarm_recurring_next(alarm, now, &candidate);
+        bool valid = alarm->repeat_mode == ALARM_REPEAT_DAYS ? alarm_recurring_next(alarm, now, &candidate)
+                                                             : alarm_once_time(alarm, &candidate);
 
         if (!valid || candidate < now)
             continue;
@@ -145,6 +165,13 @@ static void alarm_find_next(const Alarm *self, time_t now, AlarmNext *next)
         next->valid         = true;
         next->timestamp     = candidate;
         next->minute_of_day = alarm->minute_of_day;
+
+        if (alarm->repeat_mode == ALARM_REPEAT_TIMER) {
+            struct tm *local = localtime(&candidate);
+
+            if (local)
+                next->minute_of_day = (uint16_t)(local->tm_hour * 60 + local->tm_min);
+        }
     }
 }
 
@@ -206,7 +233,7 @@ static void alarm_layer_update_proc(Layer *layer, GContext *ctx)
     GFont font            = fonts_get_system_font(ALARM_FONT);
 
     format_alarm_time(self->display_minute, time_buf, sizeof(time_buf));
-    snprintf(display_buf, sizeof(display_buf), "%s %s", grid_i18n(GRID_TEXT_NEXT_ALARM), time_buf);
+    snprintf(display_buf, sizeof(display_buf), "%s %s", grid_i18n(GRID_TEXT_SIGNAL), time_buf);
 
     graphics_context_set_text_color(ctx, ALARM_COLOR);
     graphics_draw_text(ctx, display_buf, font, bounds, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
@@ -275,7 +302,7 @@ static bool alarm_cleanup(Settings *settings)
     for (uint8_t read = 0; read < alarms->count; read++) {
         AlarmSettings *alarm = &alarms->items[read];
 
-        if (alarm->repeat_mode == ALARM_REPEAT_ONCE && !alarm->enabled) {
+        if (alarm->repeat_mode != ALARM_REPEAT_DAYS && !alarm->enabled) {
             changed = true;
             continue;
         }
@@ -309,8 +336,18 @@ static bool alarm_start_next(Alarm *self)
 
         self->pending_mask &= (uint16_t)~bit;
         self->active_minute = alarm->minute_of_day;
-        self->last_vibe_ms  = 0;
-        self->ringing       = true;
+        if (alarm->repeat_mode == ALARM_REPEAT_TIMER) {
+            time_t timestamp;
+
+            if (alarm_once_time(alarm, &timestamp)) {
+                struct tm *local = localtime(&timestamp);
+
+                if (local)
+                    self->active_minute = (uint16_t)(local->tm_hour * 60 + local->tm_min);
+            }
+        }
+        self->last_vibe_ms = 0;
+        self->ringing      = true;
 
         alarm_vibe_pulse(self);
         alarm_refresh_display(self, NULL);
@@ -444,10 +481,8 @@ static void alarm_process_due(Alarm *self, time_t now)
     if (!self || !self->settings_store)
         return;
 
-    time_t epoch_minute = now / 60;
-
-    if (self->last_checked_minute == epoch_minute)
-        return;
+    time_t epoch_minute       = now / 60;
+    bool   check_clock_alarms = self->last_checked_minute != epoch_minute;
 
     struct tm *current = localtime(&now);
 
@@ -466,7 +501,7 @@ static void alarm_process_due(Alarm *self, time_t now)
         if (!alarm->enabled)
             continue;
 
-        if (alarm->repeat_mode == ALARM_REPEAT_ONCE) {
+        if (alarm->repeat_mode != ALARM_REPEAT_DAYS) {
             time_t alarm_time;
 
             if (!alarm_once_time(alarm, &alarm_time) || alarm_time < minute_start) {
@@ -474,14 +509,17 @@ static void alarm_process_due(Alarm *self, time_t now)
                 settings_changed = true;
                 continue;
             }
+
+            if (alarm->repeat_mode == ALARM_REPEAT_TIMER && alarm_time > now)
+                continue;
         }
 
-        if (!alarm_matches_now(alarm, current))
+        if (alarm->repeat_mode != ALARM_REPEAT_TIMER && (!check_clock_alarms || !alarm_matches_now(alarm, current)))
             continue;
 
         self->pending_mask |= (uint16_t)(1u << i);
 
-        if (alarm->repeat_mode == ALARM_REPEAT_ONCE) {
+        if (alarm->repeat_mode != ALARM_REPEAT_DAYS) {
             alarm->enabled   = 0;
             settings_changed = true;
         }
