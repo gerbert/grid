@@ -11,7 +11,7 @@ sleep time.
 
 ## Highlights
 
-- Clean idle screen with time and the next active signal when configured
+- Clean idle screen with time and separate alarm/timer indicators when configured
 - Doppler animation triggered by a wrist flick
 - Configurable glance duration from 3 to 30 seconds
 - Optional Do not disturb interval that suppresses glance activation
@@ -71,13 +71,16 @@ the lower grid section.
 
 ### Idle screen
 
-During normal use, the current time is visible. The nearest active alarm is
-shown as `Alarm: HH:MM`, and the nearest timer is shown beneath it as a remaining
-time countdown. When no alarm is configured, the timer occupies the first line.
-The countdown uses `Timer: HH:MM`, switching to `Timer: 00:SS` during the final
-minute. The display ordinarily updates once per minute, switching to once per
-second only near a timer's end. The nearest occurrence of either type is
-scheduled through Pebble Wakeup independently of the display.
+During normal use, the current time is visible. The nearest active alarm and
+timer are shown independently, with labels and values centered in two columns.
+When both are configured, the alarm occupies the first row and the timer the
+second. A timer uses the first row when no alarm is configured. The labels are
+shown without colons.
+
+Timers display remaining hours and minutes, switching to seconds during the
+final minute. The display ordinarily updates once per minute, with second-by-
+second updates only near a timer's end. Signal scheduling is independent of
+screen updates.
 
 ### Glance screen
 
@@ -101,7 +104,7 @@ case the idle clock remains on screen and the Doppler/full glance does not start
 
 Signals are configured on the phone and stored together with the persistent watchface
 settings. Up to five active signals can be configured. Their vibration uses the
-firmware-provided long pulse and repeats continuously until the alarm is reset.
+firmware-provided long pulse and repeats until the active signal is dismissed.
 
 A one-time alarm uses the next occurrence of the selected local time and is removed after it fires. Expired
 one-time entries are also pruned locally from the phone configuration as soon as their scheduled local
@@ -118,7 +121,7 @@ The native time picker limits timer intervals to `00:01` through `23:59`. Select
 on Pebble Wakeup and clock synchronization. The deadline is preserved when other
 settings are changed.
 
-The watch schedules one Pebble Wakeup for the nearest active alarm. When the Wakeup
+The watch schedules one Pebble Wakeup for the nearest active signal. When the Wakeup
 arrives, all signals due at that moment are queued in configuration order and the
 first firmware long pulse starts immediately. One-time completion is persisted after
 that first user-visible reaction; finished one-time entries are removed once the due
@@ -216,7 +219,7 @@ Available options:
 - `Clock backlight on flick`: disabled by default; while DnD is active, a normal wrist
   flick may turn on the backlight without starting Doppler or showing the full glance
 - `Signals`: add, edit, and delete up to 5 active signals in-place
-- A ringing alarm is reset by a single normal wrist flick; this is not configurable
+- A ringing signal is dismissed by a single normal wrist flick; this is not configurable
 - Per-signal schedule: one time, every day, weekdays, weekends, selected days, or a timer interval up to 23 hours 59 minutes
 - `Enable weather`: disabled by default
 - `Provider`: Open-Meteo (default) or MET Norway
@@ -250,8 +253,9 @@ changing the watch's language to apply the new locale.
 The watchface tries to do as little work as possible while idle:
 
 - The time is updated once per minute.
-- The minute tick performs alarm reconciliation before the weather timestamp comparison.
-- Only the nearest active alarm has a Pebble Wakeup scheduled; no fast polling is used.
+- The minute tick performs signal reconciliation before the weather timestamp comparison.
+- Only the nearest active signal has a Pebble Wakeup scheduled; no fast polling is used.
+- The shared tick subscription switches to seconds only near a timer deadline.
 - A runtime AppTimer exists only while an alarm is already ringing to repeat the system long pulse.
 - Weather requests occur only when enabled and due.
 - Twelve forecast slots allow the displayed value to advance without another
